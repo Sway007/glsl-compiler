@@ -1,0 +1,20 @@
+{
+  "name": "compiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -r ts-node/register test/**/*.spec.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^4.3.14",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.30",
+    "chai": "^5.1.0",
+    "mocha": "^10.3.0",
+    "ts-node": "^10.9.2"
+  }
+}
