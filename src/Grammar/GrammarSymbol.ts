@@ -17,6 +17,8 @@ export enum ENonTerminal {
   B,
   D,
   G,
+  L,
+  R,
   // TEST: end
 }
 

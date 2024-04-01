@@ -69,6 +69,19 @@ const printConfig = {
 };
 
 // const grammar = Grammar.create(ENonTerminal.S, [
+//   [ENonTerminal.S, ENonTerminal.L, ETokenType.EQUAL, ENonTerminal.R],
+//   [ENonTerminal.S, ENonTerminal.R],
+//   [ENonTerminal.L, ETokenType.STAR, ENonTerminal.R],
+//   [ENonTerminal.L, ETokenType.ID],
+//   [ENonTerminal.R, ENonTerminal.L],
+// ]);
+
+// const printConfig = {
+//   nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.T, ENonTerminal.R],
+//   terminalSymbols: [ETokenType.EQUAL, ETokenType.STAR, ETokenType.ID],
+// };
+
+// const grammar = Grammar.create(ENonTerminal.S, [
 //   [ENonTerminal.S, ENonTerminal.E],
 //   [ENonTerminal.E, ENonTerminal.T, ETokenType.PLUS, ENonTerminal.E],
 //   [ENonTerminal.E, ENonTerminal.T],

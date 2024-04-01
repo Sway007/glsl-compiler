@@ -112,7 +112,7 @@ export default class LALR1 {
 
   private buildStateTable() {
     const startStateItemCore = [
-      StateItem.create(this.grammar.productions[0], 0, ETokenType.EOF),
+      new StateItem(this.grammar.productions[0], 0, [ETokenType.EOF]),
     ];
     const startState = State.create(startStateItemCore);
     this._extendState(startState);
@@ -131,9 +131,7 @@ export default class LALR1 {
     if (state.closured) return;
     for (const core of state.cores) {
       if (!core.canReduce()) {
-        const extendedItems = new Set<StateItem>();
-        this._extendStateItem(core, extendedItems);
-        for (const ni of extendedItems) state.addItem(ni);
+        this._extendStateItem(state, core);
       }
     }
     state.closured = true;
@@ -152,7 +150,9 @@ export default class LALR1 {
           stateItem.production.goal === ENonTerminal.START
             ? EAction.Accept
             : EAction.Reduce;
-        stateActionTable.set(stateItem.lookahead, { action });
+        for (const t of stateItem.lookaheadSet) {
+          stateActionTable.set(<Terminal>t, { action });
+        }
       } else {
         const nextItem = stateItem.advance();
         Utils.addMapSetItem(coreMap, stateItem.curSymbol, nextItem);
@@ -301,11 +301,7 @@ export default class LALR1 {
     this.followSetMap.set(nonTerminal, followSet);
   }
 
-  static count = 0;
-  private _extendStateItem(item: StateItem, addedItems: Set<StateItem>) {
-    LALR1.count++;
-    if (LALR1.count === 1000) debugger;
-
+  private _extendStateItem(state: State, item: StateItem) {
     if (GrammarUtils.isTerminal(item.curSymbol)) {
       return;
     }
@@ -315,60 +311,49 @@ export default class LALR1 {
     );
 
     if (item.nextSymbol) {
-      if (GrammarUtils.isTerminal(item.nextSymbol)) {
-        for (const production of productionList) {
-          if (production.derivation[0] === ETokenType.EPSILON) continue;
-          const newItem = StateItem.create(
-            production,
-            0,
-            <Terminal>item.nextSymbol
-          );
-          if (!addedItems.has(newItem)) {
-            addedItems.add(
-              StateItem.create(production, 0, <Terminal>item.nextSymbol)
-            );
-            this._extendStateItem(newItem, addedItems);
-          }
+      let newLookaheadSet = new Set<Terminal>();
+      let lastFirstSet: Set<Terminal> | undefined;
+      // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
+      // newLookAhead = First(Ca)
+      for (
+        let i = 1, nextSymbol = item.symbolByOffset(1);
+        !!nextSymbol;
+        nextSymbol = item.symbolByOffset(++i)
+      ) {
+        if (GrammarUtils.isTerminal(nextSymbol)) {
+          newLookaheadSet.add(<Terminal>nextSymbol);
+          break;
         }
-      } else {
-        const firstSet = this.firstSetMap.get(<ENonTerminal>item.curSymbol)!;
-        for (const production of productionList) {
-          for (const gs of firstSet) {
-            if (gs !== ETokenType.EPSILON) {
-              const newItem = StateItem.create(production, 0, gs);
-              if (!addedItems.has(newItem)) {
-                addedItems.add(newItem);
-                this._extendStateItem(newItem, addedItems);
-              }
-            }
-          }
-          if (firstSet.has(ETokenType.EPSILON)) {
-            const newItem = StateItem.create(production, 0, item.lookahead);
-            if (!addedItems.has(newItem)) {
-              addedItems.add(newItem);
-              this._extendStateItem(newItem, addedItems);
-            }
-          }
+        lastFirstSet = this.firstSetMap.get(<ENonTerminal>nextSymbol)!;
+        for (const t of lastFirstSet) {
+          newLookaheadSet.add(t);
+        }
+        if (!lastFirstSet.has(ETokenType.EPSILON)) break;
+      }
+      if (lastFirstSet?.has(ETokenType.EPSILON)) {
+        for (const t of item.lookaheadSet) {
+          newLookaheadSet.add(t);
+        }
+      }
+
+      for (const production of productionList) {
+        const newItem = state.createStateItem(production, 0);
+        if (!state.items.has(newItem)) {
+          state.items.add(newItem);
+          this._extendStateItem(state, newItem);
+          newItem.addLookahead(newLookaheadSet);
         }
       }
     } else {
       for (const production of productionList) {
-        const newItem = StateItem.create(production, 0, item.lookahead);
-        if (!addedItems.has(newItem)) {
-          addedItems.add(newItem);
-          this._extendStateItem(newItem, addedItems);
+        const newItem = state.createStateItem(production, 0);
+        if (!state.items.has(newItem)) {
+          state.items.add(newItem);
+          this._extendStateItem(state, newItem);
+          newItem.addLookahead(item.lookaheadSet);
         }
       }
     }
-
-    // for (const ni of item.extendedItems) {
-    //   const extendedNewItems = this._extendStateItem(ni);
-    //   for (const ei of extendedNewItems) {
-    //     item.extendedItems.add(ei);
-    //   }
-    // }
-
-    // return item.extendedItems;
   }
 
   // TEST: for debug
