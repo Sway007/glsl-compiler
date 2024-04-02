@@ -21,7 +21,17 @@ export default class State {
   static create(cores: StateItem[]) {
     const cacheKey = this.getMapKey(cores);
     const state = this.closureMap.get(cacheKey);
-    if (state) return state;
+    if (state) {
+      for (const core of cores) {
+        // merge lookahead
+        state.createStateItem(
+          core.production,
+          core.position,
+          core.lookaheadSet
+        );
+      }
+      return state;
+    }
 
     const newState = new State(cores);
     this.closureMap.set(cacheKey, newState);
@@ -46,7 +56,7 @@ export default class State {
   }
 
   getStateItemMapKey(production: Production, position: number) {
-    return `${this.id},${production.id},${position}`;
+    return `${production.id},${position}`;
   }
 
   createStateItem(

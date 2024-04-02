@@ -29,4 +29,8 @@ export default class Grammar {
       (item) => item.goal === NT && item.derivation[0] === ETokenType.EOF
     );
   }
+
+  getProductionByID(pid: number) {
+    return Production.pool.get(pid);
+  }
 }
