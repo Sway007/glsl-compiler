@@ -1,4 +1,3 @@
-import { ETokenType } from '../Lexer/TokenType';
 import { ENonTerminal, Terminal } from './GrammarSymbol';
 import Production from './Production';
 import GrammarUtils from './Utils';
@@ -10,6 +9,8 @@ export default class StateItem {
   readonly position: number;
   readonly lookaheadSet: Set<Terminal>;
   readonly id: number;
+
+  dirtyLookahead = true;
   get curSymbol() {
     return this.production.derivation[this.position];
   }
@@ -30,7 +31,9 @@ export default class StateItem {
 
   addLookahead(ts: Iterable<Terminal>) {
     for (const t of ts) {
+      if (this.lookaheadSet.has(t)) continue;
       this.lookaheadSet.add(t);
+      this.dirtyLookahead = true;
     }
   }
 

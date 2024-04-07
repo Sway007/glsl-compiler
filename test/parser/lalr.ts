@@ -6,6 +6,7 @@ import LREncoder from '../../src/ParserGenerator/Encoder';
 import LALR1 from '../../src/ParserGenerator/LALR1';
 import LRLoader from '../../src/ParserGenerator/Loader';
 import { printFirstSet, printStatePool, printStateTable } from './utils';
+import Lexer from '../../src/Lexer';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
@@ -22,15 +23,15 @@ import { printFirstSet, printStatePool, printStateTable } from './utils';
 //   [ENonTerminal.Y, ETokenType.EPSILON],
 // ]);
 
-const grammar = Grammar.create(ENonTerminal.S, [
-  [ENonTerminal.S, ENonTerminal.X, ENonTerminal.X],
-  [ENonTerminal.X, ETokenType.a, ENonTerminal.X],
-  [ENonTerminal.X, ETokenType.b],
-]);
-const printConfig = {
-  terminalSymbols: [ETokenType.a, ETokenType.b, ETokenType.EOF],
-  nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.X],
-};
+// const grammar = Grammar.create(ENonTerminal.S, [
+//   [ENonTerminal.S, ENonTerminal.X, ENonTerminal.X],
+//   [ENonTerminal.X, ETokenType.a, ENonTerminal.X],
+//   [ENonTerminal.X, ETokenType.b],
+// ]);
+// const printConfig = {
+//   terminalSymbols: [ETokenType.a, ETokenType.b, ETokenType.EOF],
+//   nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.X],
+// };
 
 // const grammar = Grammar.create(ENonTerminal.A, [
 //   [ENonTerminal.A, ENonTerminal.F, ENonTerminal.C, ETokenType.a],
@@ -108,6 +109,36 @@ const printConfig = {
 //   nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.C],
 // };
 
+const grammar = Grammar.create(ENonTerminal.exp, [
+  [ENonTerminal.exp, ENonTerminal.exp, ETokenType.PLUS, ENonTerminal.term],
+  [ENonTerminal.exp, ENonTerminal.term],
+  [ENonTerminal.term, ENonTerminal.term, ETokenType.STAR, ENonTerminal.factor],
+  [ENonTerminal.term, ENonTerminal.factor],
+  [ENonTerminal.factor, ETokenType.INT_CONSTANT],
+  [
+    ENonTerminal.factor,
+    ETokenType.LEFT_PAREN,
+    ENonTerminal.exp,
+    ETokenType.RIGHT_PAREN,
+  ],
+]);
+
+const printConfig = {
+  terminalSymbols: [
+    ETokenType.INT_CONSTANT,
+    ETokenType.LEFT_PAREN,
+    ETokenType.RIGHT_PAREN,
+    ETokenType.PLUS,
+    ETokenType.STAR,
+    ETokenType.EOF,
+  ],
+  nonTerminalSymbols: [
+    ENonTerminal.exp,
+    ENonTerminal.term,
+    ENonTerminal.factor,
+  ],
+};
+
 const parser = new LALR1(grammar);
 parser.generate();
 
@@ -127,5 +158,12 @@ for (let i = 0; i < buffer.byteLength; i++) {
 const decodedParser = LRLoader.load(arraybuffer, grammar);
 printStateTable(printConfig, decodedParser);
 
+const text = `  2 *   (4+5)`;
+const lexer = new Lexer(text);
+const tokens = lexer.tokenize();
+decodedParser.parse(tokens);
+
+// lexer.tokenize();
+
 // decodedParser.parse([ETokenType.c, ETokenType.d, ETokenType.d]);
-decodedParser.parse([ETokenType.b, ETokenType.a, ETokenType.a, ETokenType.b]);
+// decodedParser.parse([ETokenType.b, ETokenType.a, ETokenType.a, ETokenType.b]);

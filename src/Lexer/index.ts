@@ -19,19 +19,16 @@ export default class Lexer {
     this.current = this.line = this.column = 0;
   }
 
-  tokenize() {
+  *tokenize() {
     let line = 0;
-    let lineStr: string[] = [];
     while (!this.isEnd()) {
       const token = this.scanToken();
       if (token.position.line !== line) {
-        console.log(lineStr.join(' '));
         line = token.position.line;
-        lineStr = [];
       }
-      lineStr.push(token.toString());
+      yield token;
     }
-    console.log(lineStr.join(' '));
+    return new Token(ETokenType.EOF, '', this.getPosition());
   }
 
   private curChar() {

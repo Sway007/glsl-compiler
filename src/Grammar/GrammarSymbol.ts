@@ -19,6 +19,9 @@ export enum ENonTerminal {
   G,
   L,
   R,
+  exp,
+  term,
+  factor,
   // TEST: end
 }
 

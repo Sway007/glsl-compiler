@@ -47,7 +47,7 @@ export default class LALR1 {
   }
 
   private _extendState(state: State) {
-    if (state.closured) return;
+    if (!state.dirtyLookahead) return;
     this.closure(state);
     const newStates = this.inferNextState(state);
     for (const ns of newStates) {
@@ -56,7 +56,6 @@ export default class LALR1 {
   }
 
   private closure(state: State) {
-    if (state.closured) return;
     for (const core of state.cores) {
       if (!core.canReduce()) {
         this._extendStateItem(state, core);
@@ -66,11 +65,75 @@ export default class LALR1 {
     return state;
   }
 
+  private _extendStateItem(state: State, item: StateItem) {
+    if (GrammarUtils.isTerminal(item.curSymbol)) return;
+
+    const productionList = this.grammar.getProductionList(
+      <ENonTerminal>item.curSymbol
+    );
+
+    if (item.nextSymbol) {
+      let newLookaheadSet = new Set<Terminal>();
+      let lastFirstSet: Set<Terminal> | undefined;
+      let terminalExist = false;
+      // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
+      // newLookAhead = First(Ca)
+      for (
+        let i = 1, nextSymbol = item.symbolByOffset(1);
+        !!nextSymbol;
+        nextSymbol = item.symbolByOffset(++i)
+      ) {
+        if (GrammarUtils.isTerminal(nextSymbol)) {
+          newLookaheadSet.add(<Terminal>nextSymbol);
+          terminalExist = true;
+          break;
+        }
+        lastFirstSet = this.firstSetMap.get(<ENonTerminal>nextSymbol)!;
+        for (const t of lastFirstSet) {
+          newLookaheadSet.add(t);
+        }
+        if (!lastFirstSet.has(ETokenType.EPSILON)) break;
+      }
+      if (!terminalExist && lastFirstSet?.has(ETokenType.EPSILON)) {
+        for (const t of item.lookaheadSet) {
+          newLookaheadSet.add(t);
+        }
+      }
+
+      for (const production of productionList) {
+        const newItem = state.createStateItem(production, 0);
+        if (
+          !state.items.has(newItem) ||
+          !Utils.isSubSet(newLookaheadSet, newItem.lookaheadSet)
+        ) {
+          state.items.add(newItem);
+          newItem.addLookahead(newLookaheadSet);
+          this._extendStateItem(state, newItem);
+        }
+      }
+    } else {
+      for (const production of productionList) {
+        const newItem = state.createStateItem(production, 0);
+        if (
+          !state.items.has(newItem) ||
+          !Utils.isSubSet(item.lookaheadSet, newItem.lookaheadSet)
+        ) {
+          state.items.add(newItem);
+          newItem.addLookahead(item.lookaheadSet);
+          this._extendStateItem(state, newItem);
+        }
+      }
+    }
+  }
+
   private inferNextState(state: State): Set<State> {
     const coreMap: Map<GrammarSymbol, Set<StateItem>> = new Map();
     const stateActionTable: ActionTable =
       this.actionTable.get(state.id) ?? new Map();
     const stateGotoTable: GotoTable = this.gotoTable.get(state.id) ?? new Map();
+
+    this.actionTable.set(state.id, stateActionTable);
+    this.gotoTable.set(state.id, stateGotoTable);
 
     for (const stateItem of state.items) {
       if (stateItem.canReduce()) {
@@ -85,12 +148,14 @@ export default class LALR1 {
         }
 
         for (const t of stateItem.lookaheadSet) {
-          stateActionTable.set(<Terminal>t, action);
+          stateActionTable.set(t, action);
         }
       } else {
         const nextItem = stateItem.advance();
         Utils.addMapSetItem(coreMap, stateItem.curSymbol, nextItem);
       }
+
+      stateItem.dirtyLookahead = false;
     }
 
     const newStates = new Set<State>();
@@ -107,8 +172,7 @@ export default class LALR1 {
 
       newStates.add(newState);
     }
-    this.actionTable.set(state.id, stateActionTable);
-    this.gotoTable.set(state.id, stateGotoTable);
+
     return newStates;
   }
 
@@ -234,59 +298,4 @@ export default class LALR1 {
 
   //   this.followSetMap.set(nonTerminal, followSet);
   // }
-
-  private _extendStateItem(state: State, item: StateItem) {
-    if (GrammarUtils.isTerminal(item.curSymbol)) {
-      return;
-    }
-
-    const productionList = this.grammar.getProductionList(
-      <ENonTerminal>item.curSymbol
-    );
-
-    if (item.nextSymbol) {
-      let newLookaheadSet = new Set<Terminal>();
-      let lastFirstSet: Set<Terminal> | undefined;
-      // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
-      // newLookAhead = First(Ca)
-      for (
-        let i = 1, nextSymbol = item.symbolByOffset(1);
-        !!nextSymbol;
-        nextSymbol = item.symbolByOffset(++i)
-      ) {
-        if (GrammarUtils.isTerminal(nextSymbol)) {
-          newLookaheadSet.add(<Terminal>nextSymbol);
-          break;
-        }
-        lastFirstSet = this.firstSetMap.get(<ENonTerminal>nextSymbol)!;
-        for (const t of lastFirstSet) {
-          newLookaheadSet.add(t);
-        }
-        if (!lastFirstSet.has(ETokenType.EPSILON)) break;
-      }
-      if (lastFirstSet?.has(ETokenType.EPSILON)) {
-        for (const t of item.lookaheadSet) {
-          newLookaheadSet.add(t);
-        }
-      }
-
-      for (const production of productionList) {
-        const newItem = state.createStateItem(production, 0);
-        if (!state.items.has(newItem)) {
-          state.items.add(newItem);
-          this._extendStateItem(state, newItem);
-          newItem.addLookahead(newLookaheadSet);
-        }
-      }
-    } else {
-      for (const production of productionList) {
-        const newItem = state.createStateItem(production, 0);
-        if (!state.items.has(newItem)) {
-          state.items.add(newItem);
-          this._extendStateItem(state, newItem);
-          newItem.addLookahead(item.lookaheadSet);
-        }
-      }
-    }
-  }
 }

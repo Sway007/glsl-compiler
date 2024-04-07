@@ -4,4 +4,11 @@ export default class Utils {
     set.add(v);
     map.set(k, set);
   }
+
+  static isSubSet<T>(sa: Set<T>, sb: Set<T>) {
+    for (const item of sa) {
+      if (!sb.has(item)) return false;
+    }
+    return true;
+  }
 }

@@ -28,3 +28,13 @@ S` -> S
 S -> X X
 X -> a X
 X -> b
+
+// =========
+
+S' -> exp
+exp -> exp + term
+exp -> term
+term -> term * factor
+term -> factor
+factor -> INT
+factor -> ( exp )

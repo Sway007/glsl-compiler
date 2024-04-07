@@ -35,7 +35,7 @@ export function printStateTable(
   const terminalSymbols = info?.terminalSymbols;
   const nonTerminalSymbols = info?.nonTerminalSymbols;
 
-  const unitPadding = 10;
+  const unitPadding = 20;
 
   let str = '';
   const printCell = (text: string | number, unit: number) => {

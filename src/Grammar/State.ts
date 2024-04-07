@@ -15,6 +15,11 @@ export default class State {
   }
 
   closured = false;
+  get dirtyLookahead() {
+    return (
+      Array.from(this.cores).findIndex((item) => item.dirtyLookahead) !== -1
+    );
+  }
 
   private stateItemPool: Map<string /** Map ID */, StateItem> = new Map();
 
@@ -62,13 +67,15 @@ export default class State {
   createStateItem(
     production: Production,
     position: number,
-    lookaheadSet: Set<Terminal> = new Set()
+    lookaheadSet: Iterable<Terminal> = new Set()
   ) {
     const mapId = this.getStateItemMapKey(production, position);
     const item = this.stateItemPool.get(mapId);
     if (item) {
       for (const la of lookaheadSet) {
+        if (item.lookaheadSet.has(la)) continue;
         item.lookaheadSet.add(la);
+        item.dirtyLookahead = true;
       }
       return item;
     }
