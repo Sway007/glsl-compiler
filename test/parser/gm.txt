@@ -38,3 +38,24 @@ term -> term * factor
 term -> factor
 factor -> INT
 factor -> ( exp )
+
+// ==========
+
+program -> statements
+statements -> statement
+statements -> statements statement
+statement -> decl
+statement -> assign
+statement -> block
+decl -> var id ;
+assign -> id = exp ;
+block -> { statements }
+exp -> term
+exp -> exp + term
+exp -> exp - term
+term -> factor
+term -> term * factor
+term -> term / factor
+factor -> id
+factor -> num
+factor -> ( exp )

@@ -6,6 +6,11 @@ export default class Token {
   lexeme: string;
   position: Position;
 
+  /** The length of lexeme */
+  get length() {
+    return this.lexeme.length;
+  }
+
   constructor(type: TokenType, lexeme: string, position: Position) {
     this.type = type;
     this.lexeme = lexeme;
@@ -17,4 +22,4 @@ export default class Token {
   }
 }
 
-export const EOF = new Token(ETokenType.EOF, '', new Position(-1, -1, -1));
+export const EOF = new Token(ETokenType.EOF, '/EOF', new Position(-1, -1, -1));

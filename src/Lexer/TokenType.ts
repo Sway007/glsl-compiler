@@ -48,16 +48,19 @@ export enum ETokenType {
   RIGHT_PAREN,
   LEFT_BRACKET,
   RIGHT_BRACKET,
+  /** { */
   LEFT_BRACE,
+  /** } */
   RIGHT_BRACE,
   DOT,
   COMMA,
   COLON,
+  /** = */
   EQUAL,
   SEMICOLON,
   /** ! */
   BANG,
-  /** - */
+  /** \- */
   DASH,
   /** ~ */
   TILDE,

@@ -1,18 +1,24 @@
 import Grammar from '../Grammar';
-import { ENonTerminal, Terminal } from '../Grammar/GrammarSymbol';
-import Production from '../Grammar/Production';
+import { ENonTerminal } from '../Grammar/GrammarSymbol';
 import GrammarUtils from '../Grammar/Utils';
 import Token from '../Lexer/Token';
-import { EAction, StateActionTable, StateGotoTable } from './common';
+import { ETokenType } from '../Lexer/TokenType';
+import {
+  EAction,
+  StateActionTable,
+  StateGotoTable,
+} from '../ParserGenerator/common';
+import SematicAnalyzer from './SemanticAnalyzer';
 
 export default class Parser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;
-  private semanticStack: (Token | ENonTerminal | number)[] = [];
+  readonly sematicAnalyzer: SematicAnalyzer;
+  private traceBackStack: (Token | ENonTerminal | number)[] = [];
 
   private get curState() {
-    return this.semanticStack[this.semanticStack.length - 1] as ENonTerminal;
+    return this.traceBackStack[this.traceBackStack.length - 1] as ENonTerminal;
   }
   private get stateActionTable() {
     return this.actionTable.get(this.curState)!;
@@ -29,51 +35,53 @@ export default class Parser {
     this.actionTable = actionTable;
     this.gotoTable = gotoTable;
     this.grammar = grammar;
+    this.sematicAnalyzer = new SematicAnalyzer();
   }
 
   parse(tokens: Generator<Token, Token>) {
-    const { semanticStack } = this;
-    semanticStack.push(0);
+    const { traceBackStack, sematicAnalyzer } = this;
+    traceBackStack.push(0);
 
     let nextToken = tokens.next();
     while (true) {
       const token = nextToken.value;
+      if (token.type === ETokenType.LEFT_BRACE) {
+        sematicAnalyzer.newScope();
+      } else if (token.type === ETokenType.RIGHT_BRACE) {
+        sematicAnalyzer.dropScope();
+      }
+
       const actionInfo = this.stateActionTable.get(token.type);
       if (actionInfo?.action === EAction.Shift) {
-        semanticStack.push(token, actionInfo.target!);
+        traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
         this.printStack(nextToken.value);
       } else if (actionInfo?.action === EAction.Accept) {
         console.log('Accept!');
-        if (Grammar.acceptRule) {
-          Grammar.acceptRule?.();
-        }
+        sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
         console.log(`Reduce: ${reduceProduction.toString()}`);
-        const map = Grammar.translationRuleMap;
-        const translationRule = Grammar.translationRuleMap.get(
+        const translationRule = sematicAnalyzer.getTranslationRule(
           reduceProduction.id
         );
 
         const values: (Token | ENonTerminal)[] = [];
 
         for (let i = 0; i < reduceProduction.derivation.length; i++) {
-          semanticStack.pop();
-          values.unshift(<Token>semanticStack.pop());
+          traceBackStack.pop();
+          values.unshift(<Token>traceBackStack.pop());
         }
         this.printStack(token);
-        if (translationRule) {
-          translationRule(...values);
-        }
+        translationRule?.(sematicAnalyzer, ...values);
 
         const gotoTable = this.stateGotoTable;
-        semanticStack.push(reduceProduction.goal);
+        traceBackStack.push(reduceProduction.goal);
 
         const nextState = gotoTable?.get(reduceProduction.goal)!;
-        semanticStack.push(nextState);
+        traceBackStack.push(nextState);
         this.printStack(token);
         continue;
       } else {
@@ -85,15 +93,15 @@ export default class Parser {
   // TEST
   printStack(nextToken: Token) {
     let str = '';
-    for (let i = 0; i < this.semanticStack.length - 1; i++) {
-      const state = <ENonTerminal>this.semanticStack[i++];
-      const token = this.semanticStack[i];
+    for (let i = 0; i < this.traceBackStack.length - 1; i++) {
+      const state = <ENonTerminal>this.traceBackStack[i++];
+      const token = this.traceBackStack[i];
       str += `State${state} - ${
         // @ts-ignore
         token.lexeme ?? GrammarUtils.toString(token)
       }; `;
     }
-    str += `State${this.semanticStack[this.semanticStack.length - 1]} --- ${
+    str += `State${this.traceBackStack[this.traceBackStack.length - 1]} --- ${
       nextToken.lexeme
     }`;
     console.log(str);

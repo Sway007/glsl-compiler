@@ -22,6 +22,13 @@ export enum ENonTerminal {
   exp,
   term,
   factor,
+  program,
+  statements,
+  statement,
+  declaration,
+  assignment,
+  block,
+  type,
   // TEST: end
 }
 

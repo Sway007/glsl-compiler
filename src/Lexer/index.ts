@@ -28,7 +28,7 @@ export default class Lexer {
       }
       yield token;
     }
-    return new Token(ETokenType.EOF, '', this.getPosition());
+    return EOF;
   }
 
   private curChar() {

@@ -2,6 +2,7 @@ import Grammar from '../../../src/Grammar';
 import { ENonTerminal } from '../../../src/Grammar/GrammarSymbol';
 import Token from '../../../src/Lexer/Token';
 import { EKeyword, ETokenType } from '../../../src/Lexer/TokenType';
+import SematicAnalyzer from '../../../src/Parser/SemanticAnalyzer';
 import { TestCase } from '../types';
 
 const createGrammar = () =>
@@ -26,15 +27,15 @@ enum EType {
   ERROR = 'ERROR',
 }
 
-const addTranslationRule = (grammar: Grammar) => {
+const addTranslationRule = (sa: SematicAnalyzer) => {
   const valueStack: EType[] = [];
-  Grammar.addTranslationRule(5, () => {
+  sa.addTranslationRule(5, () => {
     valueStack.push(EType.INT);
   });
-  Grammar.addTranslationRule(4, () => {
+  sa.addTranslationRule(4, () => {
     valueStack.push(EType.BOOL);
   });
-  Grammar.addTranslationRule(0, (_, __, term) => {
+  sa.addTranslationRule(0, (_, __, term) => {
     const termType = valueStack.pop();
     const expType = valueStack.pop();
     if (termType === EType.INT && termType === expType) {
@@ -44,7 +45,7 @@ const addTranslationRule = (grammar: Grammar) => {
       valueStack.push(EType.ERROR);
     }
   });
-  Grammar.addTranslationRule(1, (_, __, term) => {
+  sa.addTranslationRule(1, (_, __, term) => {
     const termType = valueStack.pop();
     const expType = valueStack.pop();
     if (termType === EType.BOOL && termType === expType) {
@@ -54,7 +55,7 @@ const addTranslationRule = (grammar: Grammar) => {
       valueStack.push(EType.ERROR);
     }
   });
-  Grammar.addTranslationRule(2, (_, __, term) => {
+  sa.addTranslationRule(2, (_, __, term) => {
     const termType = valueStack.pop()!;
     const expType = valueStack.pop();
     if (termType === expType && termType !== EType.ERROR) {
@@ -64,7 +65,7 @@ const addTranslationRule = (grammar: Grammar) => {
       valueStack.push(EType.ERROR);
     }
   });
-  Grammar.acceptRule = () => {
+  sa.acceptRule = () => {
     console.log('Return type is', EType[valueStack[0]]);
   };
 };

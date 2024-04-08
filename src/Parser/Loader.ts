@@ -1,6 +1,6 @@
 import Grammar from '../Grammar';
 import { ENonTerminal, Terminal } from '../Grammar/GrammarSymbol';
-import Parser from './Parser';
+import Parser from '.';
 import {
   ActionInfo,
   ActionTable,
@@ -9,7 +9,7 @@ import {
   GotoTable,
   StateActionTable,
   StateGotoTable,
-} from './common';
+} from '../ParserGenerator/common';
 
 export default class LRLoader {
   static load(bin: ArrayBuffer, grammar: Grammar) {

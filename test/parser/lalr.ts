@@ -4,12 +4,13 @@ import { ENonTerminal } from '../../src/Grammar/GrammarSymbol';
 import { EKeyword, ETokenType } from '../../src/Lexer/TokenType';
 import LREncoder from '../../src/ParserGenerator/Encoder';
 import LALR1 from '../../src/ParserGenerator/LALR1';
-import LRLoader from '../../src/ParserGenerator/Loader';
+import LRLoader from '../../src/Parser/Loader';
 import { printFirstSet, printStatePool, printStateTable } from './utils';
 import Lexer from '../../src/Lexer';
 // import testCase from './cases/arithmetic';
 // import testCase from './cases/circle';
-import testCase from './cases/typeCheck';
+// import testCase from './cases/typeCheck';
+import testCase from './cases/simple';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
@@ -135,5 +136,5 @@ printStateTable(testCase.printConfig, decodedParser);
 
 const lexer = new Lexer(testCase.source);
 const tokens = lexer.tokenize();
-testCase.addTranslationRule(grammar);
+testCase.addTranslationRule(decodedParser.sematicAnalyzer);
 decodedParser.parse(tokens);
