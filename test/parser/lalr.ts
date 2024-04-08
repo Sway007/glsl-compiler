@@ -7,6 +7,9 @@ import LALR1 from '../../src/ParserGenerator/LALR1';
 import LRLoader from '../../src/ParserGenerator/Loader';
 import { printFirstSet, printStatePool, printStateTable } from './utils';
 import Lexer from '../../src/Lexer';
+// import testCase from './cases/arithmetic';
+// import testCase from './cases/circle';
+import testCase from './cases/typeCheck';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
@@ -109,42 +112,14 @@ import Lexer from '../../src/Lexer';
 //   nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.C],
 // };
 
-const grammar = Grammar.create(ENonTerminal.exp, [
-  [ENonTerminal.exp, ENonTerminal.exp, ETokenType.PLUS, ENonTerminal.term],
-  [ENonTerminal.exp, ENonTerminal.term],
-  [ENonTerminal.term, ENonTerminal.term, ETokenType.STAR, ENonTerminal.factor],
-  [ENonTerminal.term, ENonTerminal.factor],
-  [ENonTerminal.factor, ETokenType.INT_CONSTANT],
-  [
-    ENonTerminal.factor,
-    ETokenType.LEFT_PAREN,
-    ENonTerminal.exp,
-    ETokenType.RIGHT_PAREN,
-  ],
-]);
-
-const printConfig = {
-  terminalSymbols: [
-    ETokenType.INT_CONSTANT,
-    ETokenType.LEFT_PAREN,
-    ETokenType.RIGHT_PAREN,
-    ETokenType.PLUS,
-    ETokenType.STAR,
-    ETokenType.EOF,
-  ],
-  nonTerminalSymbols: [
-    ENonTerminal.exp,
-    ENonTerminal.term,
-    ENonTerminal.factor,
-  ],
-};
+const grammar = testCase.createGrammar();
 
 const parser = new LALR1(grammar);
 parser.generate();
 
 printFirstSet(parser.firstSetMap);
 printStatePool();
-printStateTable(printConfig, parser);
+printStateTable(testCase.printConfig, parser);
 LREncoder.encode('lalr1.bin', parser);
 
 console.log('decoding ....');
@@ -156,14 +131,9 @@ for (let i = 0; i < buffer.byteLength; i++) {
 }
 
 const decodedParser = LRLoader.load(arraybuffer, grammar);
-printStateTable(printConfig, decodedParser);
+printStateTable(testCase.printConfig, decodedParser);
 
-const text = `  2 *   (4+5)`;
-const lexer = new Lexer(text);
+const lexer = new Lexer(testCase.source);
 const tokens = lexer.tokenize();
+testCase.addTranslationRule(grammar);
 decodedParser.parse(tokens);
-
-// lexer.tokenize();
-
-// decodedParser.parse([ETokenType.c, ETokenType.d, ETokenType.d]);
-// decodedParser.parse([ETokenType.b, ETokenType.a, ETokenType.a, ETokenType.b]);
