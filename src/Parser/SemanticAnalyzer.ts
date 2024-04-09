@@ -2,7 +2,7 @@ import { ENonTerminal } from '../Grammar/GrammarSymbol';
 import Token from '../Lexer/Token';
 import SymbolTable from './SymbolTable';
 
-type TranslationRule<T = any> = (
+export type TranslationRule<T = any> = (
   sa: SematicAnalyzer,
   ...tokens: (Token | ENonTerminal)[]
 ) => T;

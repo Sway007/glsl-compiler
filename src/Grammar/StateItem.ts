@@ -1,3 +1,4 @@
+import { ETokenType } from '../Lexer/TokenType';
 import { ENonTerminal, Terminal } from './GrammarSymbol';
 import Production from './Production';
 import GrammarUtils from './Utils';
@@ -42,7 +43,13 @@ export default class StateItem {
   }
 
   canReduce() {
-    return this.position > this.production.derivation.length - 1;
+    if (this.position > this.production.derivation.length - 1) return true;
+    else {
+      for (let i = this.position; i < this.production.derivation.length; i++) {
+        if (this.production.derivation[i] !== ETokenType.EPSILON) return false;
+      }
+      return true;
+    }
   }
 
   advance() {

@@ -4,7 +4,7 @@ export enum ETokenType {
   INT_CONSTANT,
   /** << */
   LEFT_OP,
-  /** >> */
+  /** \>> */
   RIGHT_OP,
   /** ++ */
   INC_OP,
@@ -12,7 +12,7 @@ export enum ETokenType {
   DEC_OP,
   /** <= */
   LE_OP,
-  /** >= */
+  /** \>= */
   GE_OP,
   /** == */
   EQ_OP,
@@ -44,7 +44,9 @@ export enum ETokenType {
   XOR_ASSIGN,
   /** |= */
   OR_ASSIGN,
+  /** ( */
   LEFT_PAREN,
+  /** ) */
   RIGHT_PAREN,
   LEFT_BRACKET,
   RIGHT_BRACKET,
@@ -52,6 +54,7 @@ export enum ETokenType {
   LEFT_BRACE,
   /** } */
   RIGHT_BRACE,
+  /** . */
   DOT,
   COMMA,
   COLON,
@@ -65,11 +68,14 @@ export enum ETokenType {
   /** ~ */
   TILDE,
   PLUS,
+  /** \* */
   STAR,
   /** / */
   SLASH,
   PERCENT,
+  /** < */
   LEFT_ANGLE,
+  /** \> */
   RIGHT_ANGLE,
   VERTICAL_BAR,
   /** ^ */
@@ -190,4 +196,33 @@ export const KeywordTable = new Map<string, EKeyword>([
   // TEST:
 
   // TEST: end
+]);
+
+// TODO: fix
+export const opPrecedence: Map<ETokenType, number> = new Map([
+  [ETokenType.LEFT_PAREN, 0],
+  [ETokenType.RIGHT_PAREN, 0],
+
+  [ETokenType.DOT, 1],
+
+  [ETokenType.STAR, 2],
+  [ETokenType.SLASH, 2],
+
+  [ETokenType.PLUS, 3],
+  [ETokenType.DASH, 3],
+
+  [ETokenType.LEFT_OP, 4],
+  [ETokenType.RIGHT_OP, 4],
+
+  [ETokenType.LEFT_ANGLE, 5],
+  [ETokenType.RIGHT_ANGLE, 5],
+  [ETokenType.LE_OP, 5],
+  [ETokenType.GE_OP, 5],
+
+  [ETokenType.EQ_OP, 6],
+  [ETokenType.NE_OP, 6],
+
+  [ETokenType.AND_OP, 7],
+
+  [ETokenType.OR_OP, 8],
 ]);

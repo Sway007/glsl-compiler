@@ -29,6 +29,12 @@ export enum ENonTerminal {
   assignment,
   block,
   type,
+  ifStmt,
+  elsePart,
+  init,
+  condition,
+  relOp,
+  logicExp,
   // TEST: end
 }
 

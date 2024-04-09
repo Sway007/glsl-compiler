@@ -1,3 +1,4 @@
 node_modules
 .vscode
 lalr1.bin
+.local

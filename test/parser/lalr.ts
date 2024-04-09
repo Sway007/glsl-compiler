@@ -10,7 +10,8 @@ import Lexer from '../../src/Lexer';
 // import testCase from './cases/arithmetic';
 // import testCase from './cases/circle';
 // import testCase from './cases/typeCheck';
-import testCase from './cases/simple';
+// import testCase from './cases/simple';
+import testCase from './cases/medium';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
@@ -120,7 +121,7 @@ parser.generate();
 
 printFirstSet(parser.firstSetMap);
 printStatePool();
-printStateTable(testCase.printConfig, parser);
+if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
 LREncoder.encode('lalr1.bin', parser);
 
 console.log('decoding ....');
@@ -132,7 +133,7 @@ for (let i = 0; i < buffer.byteLength; i++) {
 }
 
 const decodedParser = LRLoader.load(arraybuffer, grammar);
-printStateTable(testCase.printConfig, decodedParser);
+if (testCase.printConfig) printStateTable(testCase.printConfig, decodedParser);
 
 const lexer = new Lexer(testCase.source);
 const tokens = lexer.tokenize();

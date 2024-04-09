@@ -4,10 +4,11 @@ import {
   GrammarSymbol,
   Terminal,
 } from '../Grammar/GrammarSymbol';
+import Production from '../Grammar/Production';
 import State from '../Grammar/State';
 import StateItem from '../Grammar/StateItem';
 import GrammarUtils from '../Grammar/Utils';
-import { ETokenType } from '../Lexer/TokenType';
+import { ETokenType, opPrecedence } from '../Lexer/TokenType';
 import Utils from './Utils';
 import {
   ActionInfo,
@@ -175,6 +176,45 @@ export default class LALR1 {
 
     return newStates;
   }
+
+  /** Resolve shift-reduce conflict by operator precedence */
+  // private addAction(
+  //   table: ActionTable,
+  //   terminal: Terminal,
+  //   action: ActionInfo,
+  //   reduceProduction: Production
+  // ) {
+  //   const exist = table.get(terminal);
+  //   if (!exist) table.set(terminal, action);
+  //   else if (exist.action !== action.action) {
+  //     let shiftAction: ActionInfo, reduceAction: ActionInfo;
+  //     if (exist.action === EAction.Reduce) {
+  //       shiftAction = action;
+  //       reduceAction = exist;
+  //     } else {
+  //       shiftAction = exist;
+  //       reduceAction = action;
+  //     }
+
+  //     const shiftPrecedence = opPrecedence.get(<ETokenType>terminal);
+  //     if (shiftPrecedence == undefined) {
+  //       throw `No precedence defined on operator ${GrammarUtils.toString(
+  //         terminal
+  //       )}`;
+  //     }
+  //     const reducePrecedence = reduceProduction.getReducePrecedence();
+  //     if (reducePrecedence == undefined) {
+  //       throw `No precedence defined on production ${reduceProduction.toString()}`;
+  //     }
+
+  //     // TODO: take association into account
+  //     const newAction =
+  //       shiftPrecedence <= reducePrecedence ? shiftAction : reduceAction;
+  //     table.set(terminal, newAction);
+  //   } else {
+  //     throw 'Action conflict occur!';
+  //   }
+  // }
 
   // https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
   private computeFirstSet() {

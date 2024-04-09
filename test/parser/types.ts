@@ -5,7 +5,7 @@ import SematicAnalyzer from '../../src/Parser/SemanticAnalyzer';
 export interface TestCase {
   createGrammar: () => Grammar;
   addTranslationRule: (sa: SematicAnalyzer) => void;
-  printConfig: {
+  printConfig?: {
     terminalSymbols: Terminal[];
     nonTerminalSymbols: ENonTerminal[];
   };

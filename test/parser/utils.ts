@@ -13,14 +13,14 @@ import {
 
 export function printStatePool() {
   console.log('========== Parser Pool ==========');
-  let tmp = '';
   for (const state of State.pool.values()) {
+    let tmp = '';
     tmp += `${state.id}: \n`.padEnd(4);
     for (const psItem of state.items) {
       tmp += '     ' + psItem.toString() + '\n';
     }
+    console.log(tmp);
   }
-  console.log(tmp);
 }
 
 export function printStateTable(

@@ -18,7 +18,7 @@ export default class Parser {
   private traceBackStack: (Token | ENonTerminal | number)[] = [];
 
   private get curState() {
-    return this.traceBackStack[this.traceBackStack.length - 1] as ENonTerminal;
+    return this.traceBackStack[this.traceBackStack.length - 1] as number;
   }
   private get stateActionTable() {
     return this.actionTable.get(this.curState)!;
@@ -70,7 +70,8 @@ export default class Parser {
 
         const values: (Token | ENonTerminal)[] = [];
 
-        for (let i = 0; i < reduceProduction.derivation.length; i++) {
+        for (let i = reduceProduction.derivation.length - 1; i >= 0; i--) {
+          if (reduceProduction.derivation[i] === ETokenType.EPSILON) continue;
           traceBackStack.pop();
           values.unshift(<Token>traceBackStack.pop());
         }

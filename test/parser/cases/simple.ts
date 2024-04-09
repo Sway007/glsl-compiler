@@ -4,7 +4,7 @@ import Token from '../../../src/Lexer/Token';
 import { EKeyword, ETokenType } from '../../../src/Lexer/TokenType';
 import { DeclarationAst, EType } from '../../../src/Parser/AST';
 import SematicAnalyzer from '../../../src/Parser/SemanticAnalyzer';
-import SymbolTable, { SymbolInfo } from '../../../src/Parser/SymbolTable';
+import { SymbolInfo } from '../../../src/Parser/SymbolTable';
 import { LocRange } from '../../../src/common/Position';
 import { TestCase } from '../types';
 
