@@ -3,17 +3,37 @@ Quad quads[7];
 Sphere spheres[2];
 MaterialInput materials[8];
 
-float a = 1.e-2;
-float b = 1.0e-10f;
-int c = 10u;
-float d = 1e-5f;
-
-float e = lowbias32(qn(d) + a, mn());
-
-float seed = lowbias32(vec2(iFrame) + lowbias32(iFragCoord.x + lowbias32(iFragCoord.y)));
-
 // https://www.researchgate.net/figure/Layout-of-the-Color-Checker-Chart-Used-with-Known-RGB-Values-24-This-figure-provides_fig1_372038692
-vec3 colorChecker[24];
+vec3 colorChecker[24] = vec3[24]
+(
+    vec3(0.451,0.318,0.267),
+    vec3(0.753,0.588,0.510),
+    vec3(0.384,0.478,0.616),
+    vec3(0.341,0.424,0.263),
+    vec3(0.522,0.502,0.694),
+    vec3(0.404,0.741,0.667),
+    
+    vec3(0.839,0.494,0.172),
+    vec3(0.314,0.357,0.651),
+    vec3(0.757,0.353,0.388),
+    vec3(0.369,0.235,0.424),
+    vec3(0.616,0.737,0.251),
+    vec3(0.878,0.639,0.180),
+    
+    vec3(0.220,0.251,0.588),
+    vec3(0.274,0.580,0.286),
+    vec3(0.686,0.212,0.235),
+    vec3(0.906,0.780,0.122),
+    vec3(0.733,0.337,0.584),
+    vec3(0.031,0.522,0.631),
+    
+    vec3(0.953),
+    vec3(0.784),
+    vec3(0.627),
+    vec3(0.478),
+    vec3(0.333),
+    vec3(0.204)
+);
 
 void MakeScene()
 {
@@ -48,7 +68,7 @@ bool TraceScene(Ray ray, out Intersection intersection, out int materialID)
 {
     float d = INFINITY;
     bool hasHit = false;
-    for(int i = min(0, iFrame); i < quads; i++)
+    for(int i = min(0, iFrame); i < quads.length(); i++)
     {
         float t;
         Intersection tempIntersection;
@@ -63,7 +83,7 @@ bool TraceScene(Ray ray, out Intersection intersection, out int materialID)
         }
     }
     
-    for(int i = min(0, iFrame); i < spheres; i++)
+    for(int i = min(0, iFrame); i < spheres.length(); i++)
     {
         float t;
         Intersection tempIntersection;
@@ -85,7 +105,7 @@ bool TraceLight(Ray ray, int lightMaterialID)
 {
     float d = INFINITY;
     int materialID = -1;
-    for(int i = min(0, iFrame); i < quads; i++)
+    for(int i = min(0, iFrame); i < quads.length(); i++)
     {
         float t;
         Intersection tempIntersection;
@@ -98,7 +118,7 @@ bool TraceLight(Ray ray, int lightMaterialID)
         }
     }
     
-    for(int i = min(0, iFrame); i < spheres; i++)
+    for(int i = min(0, iFrame); i < spheres.length(); i++)
     {
         float t;
         Intersection tempIntersection;
@@ -301,12 +321,12 @@ float PDF_Quad(Quad light, Ray ray)
 float PDF_NEE(Ray ray)
 {
     float pdfNEE = 0.0;
-    for (int i = min(0, iFrame); i < lights; i++)
+    for (int i = min(0, iFrame); i < lights.length(); i++)
     {
         float pdfLight = PDF_Quad(lights[i], ray);
         pdfNEE += pdfLight;
     }
-    return pdfNEE / float(lights);
+    return pdfNEE / float(lights.length());
 }
 
 float PDF_BRDF(vec3 wi, vec3 wo, vec3 normal, float roughness, float t)
@@ -355,7 +375,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     }
 
     uvec2 iFragCoord = uvec2(fragCoord);
-    seed = lowbias32(vec3(iFrame) + lowbias32(iFragCoord.x + lowbias32(iFragCoord.y)));
+    seed = lowbias32(uint(iFrame) + lowbias32(iFragCoord.x + lowbias32(iFragCoord.y)));
  
     MakeScene();
     Camera camera = Camera(vec3(0.0f, 4.0f, -12.0f), vec3(0.0f, 4.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), 45.0f);  
@@ -366,7 +386,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     Intersection intersection;
     int depth = 0;
 
-    while(depth < 10);
+    while(depth < 10)
     {
         int materialID;
         bool isHit = TraceScene(ray, intersection, materialID);      
@@ -404,7 +424,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         
         float weightNEE, weightBRDF;
         vec3 directBRDF = vec3(0.0f);
-        for(int i = ZERO; i < lights; i++)
+        for(int i = ZERO; i < lights.length(); i++)
         {
             Quad light = lights[i];        
             float dist;

@@ -506,7 +506,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       EKeyword.STRUCT,
       ENonTerminal.typename_identifier_node,
       ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declarator_list,
+      ENonTerminal.struct_declaration_list,
       ETokenType.RIGHT_BRACE,
     ],
   ]),

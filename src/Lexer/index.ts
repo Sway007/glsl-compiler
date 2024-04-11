@@ -259,17 +259,56 @@ export default class Lexer {
         buffer.push(this.curChar());
         this.advance();
       }
+      this.scanFloatSuffix(buffer);
       return new Token(
         ETokenType.FLOAT_CONSTANT,
         buffer.join(''),
         this.getPosition(buffer.length)
       );
     } else {
-      return new Token(
-        ETokenType.INT_CONSTANT,
-        buffer.join(''),
-        this.getPosition(buffer.length)
-      );
+      if (this.curChar() === 'e' || this.curChar() === 'E') {
+        this.scanFloatSuffix(buffer);
+        return new Token(
+          ETokenType.FLOAT_CONSTANT,
+          buffer.join(''),
+          this.getPosition(buffer.length)
+        );
+      } else {
+        this.scanIntegerSuffix(buffer);
+        return new Token(
+          ETokenType.INT_CONSTANT,
+          buffer.join(''),
+          this.getPosition(buffer.length)
+        );
+      }
+    }
+  }
+
+  private scanFloatSuffix(buffer: string[]) {
+    if (this.curChar() === 'e' || this.curChar() === 'E') {
+      buffer.push(this.curChar());
+      this.advance();
+      if (this.curChar() === '+' || this.curChar() === '-') {
+        buffer.push(this.curChar());
+        this.advance();
+      }
+      if (!LexerUtils.isNum(this.curChar()))
+        throw 'lexing error, invalid exponent suffix.';
+      while (LexerUtils.isNum(this.curChar())) {
+        buffer.push(this.curChar());
+        this.advance();
+      }
+    }
+    if (this.curChar() === 'f' || this.curChar() === 'F') {
+      buffer.push(this.curChar());
+      this.advance();
+    }
+  }
+
+  private scanIntegerSuffix(buffer: string[]) {
+    if (this.curChar() === 'u' || this.curChar() === 'U') {
+      buffer.push(this.curChar());
+      this.advance();
     }
   }
 

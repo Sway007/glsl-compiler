@@ -3,7 +3,6 @@ import { ETokenType } from '../Lexer/TokenType';
 import { ENonTerminal, GrammarSymbol } from './GrammarSymbol';
 import Production from './Production';
 
-type TranslationRule<T = any> = (...tokens: (Token | ENonTerminal)[]) => T;
 export default class Grammar {
   readonly productions: Production[];
 
@@ -15,12 +14,6 @@ export default class Grammar {
     });
     return new Grammar(start, _ps);
   }
-
-  // static translationRuleMap: Map<number, TranslationRule> = new Map();
-  // static addTranslationRule(pid: number, cb: TranslationRule) {
-  //   this.translationRuleMap.set(pid, cb);
-  // }
-  // static acceptRule?: TranslationRule;
 
   constructor(start: ENonTerminal, productions: Production[]) {
     this.startSymbol = start;
