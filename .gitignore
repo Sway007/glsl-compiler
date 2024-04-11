@@ -4,3 +4,4 @@ lalr1.bin
 .local
 .DS_Store
 .prettierignore
+dist

@@ -39,6 +39,7 @@ export default class Parser {
   }
 
   parse(tokens: Generator<Token, Token>, debug = false) {
+    const start = performance.now();
     const { traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
@@ -60,7 +61,11 @@ export default class Parser {
         nextToken = tokens.next();
         debug && this.printStack(nextToken.value);
       } else if (actionInfo?.action === EAction.Accept) {
-        console.log(`Accept! State automata run ${loopCount} times!`);
+        console.log(
+          `Accept! State automata run ${loopCount} times! cost time ${
+            performance.now() - start
+          }ms`
+        );
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return;
       } else if (actionInfo?.action === EAction.Reduce) {
