@@ -11,7 +11,14 @@ export default class StateItem {
   readonly lookaheadSet: Set<Terminal>;
   readonly id: number;
 
-  dirtyLookahead = true;
+  _needReInfer = true;
+  get needReInfer() {
+    return this._needReInfer;
+  }
+  set needReInfer(v: boolean) {
+    this._needReInfer = v;
+  }
+
   get curSymbol() {
     return this.production.derivation[this.position];
   }
@@ -34,7 +41,7 @@ export default class StateItem {
     for (const t of ts) {
       if (this.lookaheadSet.has(t)) continue;
       this.lookaheadSet.add(t);
-      this.dirtyLookahead = true;
+      this.needReInfer = true;
     }
   }
 

@@ -1,6 +1,8 @@
+import { ETokenType } from '../Lexer/TokenType';
 import { Terminal } from './GrammarSymbol';
 import Production from './Production';
 import StateItem from './StateItem';
+import GrammarUtils from './Utils';
 
 export default class State {
   static closureMap: Map<string /** state mapKey */, State> = new Map();
@@ -15,10 +17,8 @@ export default class State {
   }
 
   closured = false;
-  get dirtyLookahead() {
-    return (
-      Array.from(this.cores).findIndex((item) => item.dirtyLookahead) !== -1
-    );
+  get needReInfer() {
+    return Array.from(this.cores).findIndex((item) => item.needReInfer) !== -1;
   }
 
   private stateItemPool: Map<string /** Map ID */, StateItem> = new Map();
@@ -74,8 +74,14 @@ export default class State {
     if (item) {
       for (const la of lookaheadSet) {
         if (item.lookaheadSet.has(la)) continue;
+        // if (this.id === 130 && item.id === 1678) {
+        //   console.log(lookaheadSet);
+        //   debugger;
+        // }
+
         item.lookaheadSet.add(la);
-        item.dirtyLookahead = true;
+
+        item.needReInfer = true;
       }
       return item;
     }

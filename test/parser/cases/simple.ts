@@ -10,15 +10,15 @@ import { TestCase } from '../types';
 
 const createGrammar = () =>
   Grammar.create(ENonTerminal.statements, [
-    /** 0 */ [ENonTerminal.statements, ENonTerminal.statement],
+    /** 0 */ [ENonTerminal.statements, ENonTerminal.statement_no_new_scope],
     /** 1 */ [
       ENonTerminal.statements,
       ENonTerminal.statements,
-      ENonTerminal.statement,
+      ENonTerminal.statement_no_new_scope,
     ],
-    /** 2 */ [ENonTerminal.statement, ENonTerminal.declaration],
-    /** 3 */ [ENonTerminal.statement, ENonTerminal.assignment],
-    /** 4 */ [ENonTerminal.statement, ENonTerminal.block],
+    /** 2 */ [ENonTerminal.statement_no_new_scope, ENonTerminal.declaration],
+    /** 3 */ [ENonTerminal.statement_no_new_scope, ENonTerminal.assignment],
+    /** 4 */ [ENonTerminal.statement_no_new_scope, ENonTerminal.block],
     /** 5 */ [
       ENonTerminal.declaration,
       ENonTerminal.type,
@@ -131,7 +131,7 @@ const printConfig = {
     ENonTerminal.term,
     ENonTerminal.factor,
     ENonTerminal.statements,
-    ENonTerminal.statement,
+    ENonTerminal.statement_no_new_scope,
     ENonTerminal.declaration,
     ENonTerminal.assignment,
     ENonTerminal.block,

@@ -66,6 +66,7 @@ export default class Lexer {
           }
           return new Token(ETokenType.LEFT_OP, '<<', this.getPosition(2));
         } else if (this.curChar() === '=') {
+          this.advance();
           return new Token(ETokenType.LE_OP, '<=', this.getPosition(2));
         }
         return new Token(ETokenType.LEFT_ANGLE, '<', this.getPosition());
@@ -84,6 +85,7 @@ export default class Lexer {
           }
           return new Token(ETokenType.RIGHT_OP, '>>', this.getPosition(2));
         } else if (this.curChar() === '=') {
+          this.advance();
           return new Token(ETokenType.GE_OP, '>=', this.getPosition(2));
         }
         return new Token(ETokenType.RIGHT_ANGLE, '>', this.getPosition());
@@ -306,10 +308,20 @@ export default class Lexer {
   }
 
   private skipComments() {
-    if (this.curChar() === '/' && this.peek() === '/') {
-      // @ts-ignore
-      while (this.curChar() !== '\n') this.advance();
-      this.advance();
+    if (this.curChar() === '/') {
+      if (this.peek() === '/') {
+        // single line comments
+        while (this.curChar() !== '\n') this.advance();
+        this.advance();
+      }
+      // } else return;
+      else if (this.peek() === '*') {
+        //  multi-line comments
+        this.advance();
+        while (this.curChar() !== '*' || this.peek() !== '/') this.advance();
+        this.advance();
+        this.advance();
+      } else return;
     } else return;
     this.skipSpace();
     this.skipComments();

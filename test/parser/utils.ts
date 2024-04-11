@@ -1,3 +1,4 @@
+import { createWriteStream } from 'fs';
 import {
   ENonTerminal,
   GrammarSymbol,
@@ -11,16 +12,29 @@ import {
   StateGotoTable,
 } from '../../src/ParserGenerator/common';
 
-export function printStatePool() {
+export function printStatePool(logPath: string) {
+  const logStream = createWriteStream(logPath);
+
   console.log('========== Parser Pool ==========');
+
+  let count = 0;
   for (const state of State.pool.values()) {
+    count++;
     let tmp = '';
     tmp += `${state.id}: \n`.padEnd(4);
     for (const psItem of state.items) {
       tmp += '     ' + psItem.toString() + '\n';
     }
-    console.log(tmp);
+    logStream.write(tmp);
   }
+  logStream.end();
+  logStream.close();
+  console.log('state count:', count);
+  return new Promise((res) => {
+    logStream.on('finish', () => {
+      res('');
+    });
+  });
 }
 
 export function printStateTable(
@@ -91,26 +105,48 @@ export function printStateTable(
   console.log(str);
 }
 
-export function printFirstSet(firstSet: Map<ENonTerminal, Set<Terminal>>) {
+export function printFirstSet(
+  firstSet: Map<ENonTerminal, Set<Terminal>>,
+  outPath: string
+) {
+  const logStream = createWriteStream(outPath);
   console.log('========== First Set ==========');
   for (const [NT, set] of firstSet.entries()) {
-    console.log(
+    logStream.write(
       `${`First(${ENonTerminal[NT]})`.padEnd(15)} -> ${[...set.values()]
         .map((item) => GrammarUtils.toString(item))
-        .join(', ')}`
+        .join(', ')}\n`
     );
   }
+
+  logStream.end();
+  logStream.close();
+  return new Promise((res) => {
+    logStream.on('finish', () => {
+      res('');
+    });
+  });
 }
 
 export function printFollowSet(
-  followSet: Map<ENonTerminal, Set<GrammarSymbol>>
+  followSet: Map<ENonTerminal, Set<GrammarSymbol>>,
+  outPath: string
 ) {
+  const logStream = createWriteStream(outPath);
   console.log('========== Follow Set ==========');
   for (const [NT, set] of followSet.entries()) {
-    console.log(
+    logStream.write(
       `${`Follow(${ENonTerminal[NT]})`.padEnd(15)} -> ${[...set.values()]
         .map((item) => GrammarUtils.toString(item))
         .join(', ')}`
     );
   }
+
+  logStream.end();
+  logStream.close();
+  return new Promise((res) => {
+    logStream.on('finish', () => {
+      res('');
+    });
+  });
 }

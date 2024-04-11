@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { createWriteStream, readFileSync } from 'fs';
 import Grammar from '../../src/Grammar';
 import { ENonTerminal } from '../../src/Grammar/GrammarSymbol';
 import { EKeyword, ETokenType } from '../../src/Lexer/TokenType';
@@ -11,7 +11,8 @@ import Lexer from '../../src/Lexer';
 // import testCase from './cases/circle';
 // import testCase from './cases/typeCheck';
 // import testCase from './cases/simple';
-import testCase from './cases/medium';
+// import testCase from './cases/medium';
+import testCase from './cases/glsl';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
@@ -113,29 +114,33 @@ import testCase from './cases/medium';
 //   terminalSymbols: [ETokenType.c, ETokenType.d, ETokenType.EOF],
 //   nonTerminalSymbols: [ENonTerminal.S, ENonTerminal.C],
 // };
+async function main() {
+  const grammar = testCase.createGrammar();
 
-const grammar = testCase.createGrammar();
+  const parser = new LALR1(grammar);
+  parser.generate();
 
-const parser = new LALR1(grammar);
-parser.generate();
+  // await printFirstSet(parser.firstSetMap, '.local/firstSet.text');
+  // await printStatePool('.local/state.txt');
+  if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
+  LREncoder.encode('lalr1.bin', parser);
 
-printFirstSet(parser.firstSetMap);
-printStatePool();
-if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
-LREncoder.encode('lalr1.bin', parser);
+  console.log('decoding ....');
+  const buffer = readFileSync('lalr1.bin');
+  const arraybuffer = new ArrayBuffer(buffer.byteLength);
+  const view = new DataView(arraybuffer);
+  for (let i = 0; i < buffer.byteLength; i++) {
+    view.setUint8(i, buffer[i]);
+  }
 
-console.log('decoding ....');
-const buffer = readFileSync('lalr1.bin');
-const arraybuffer = new ArrayBuffer(buffer.byteLength);
-const view = new DataView(arraybuffer);
-for (let i = 0; i < buffer.byteLength; i++) {
-  view.setUint8(i, buffer[i]);
+  const decodedParser = LRLoader.load(arraybuffer, grammar);
+  // if (testCase.printConfig)
+  //   printStateTable(testCase.printConfig, decodedParser);
+
+  const lexer = new Lexer(testCase.source);
+  const tokens = lexer.tokenize();
+  testCase.addTranslationRule(decodedParser.sematicAnalyzer);
+  decodedParser.parse(tokens);
 }
 
-const decodedParser = LRLoader.load(arraybuffer, grammar);
-if (testCase.printConfig) printStateTable(testCase.printConfig, decodedParser);
-
-const lexer = new Lexer(testCase.source);
-const tokens = lexer.tokenize();
-testCase.addTranslationRule(decodedParser.sematicAnalyzer);
-decodedParser.parse(tokens);
+main();

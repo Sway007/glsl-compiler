@@ -34,7 +34,7 @@ export default class Grammar {
 
   isNullableNT(NT: ENonTerminal) {
     return this.productions.find(
-      (item) => item.goal === NT && item.derivation[0] === ETokenType.EOF
+      (item) => item.goal === NT && item.derivation[0] === ETokenType.EPSILON
     );
   }
 

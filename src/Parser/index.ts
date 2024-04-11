@@ -38,12 +38,15 @@ export default class Parser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<Token, Token>) {
+  parse(tokens: Generator<Token, Token>, debug = false) {
     const { traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
     let nextToken = tokens.next();
+    let loopCount = 0;
     while (true) {
+      loopCount += 1;
+
       const token = nextToken.value;
       if (token.type === ETokenType.LEFT_BRACE) {
         sematicAnalyzer.newScope();
@@ -55,15 +58,15 @@ export default class Parser {
       if (actionInfo?.action === EAction.Shift) {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
-        this.printStack(nextToken.value);
+        debug && this.printStack(nextToken.value);
       } else if (actionInfo?.action === EAction.Accept) {
-        console.log('Accept!');
+        console.log(`Accept! State automata run ${loopCount} times!`);
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
-        console.log(`Reduce: ${reduceProduction.toString()}`);
+        debug && console.log(`Reduce: ${reduceProduction.toString()}`);
         const translationRule = sematicAnalyzer.getTranslationRule(
           reduceProduction.id
         );
@@ -75,7 +78,7 @@ export default class Parser {
           traceBackStack.pop();
           values.unshift(<Token>traceBackStack.pop());
         }
-        this.printStack(token);
+        debug && this.printStack(token);
         translationRule?.(sematicAnalyzer, ...values);
 
         const gotoTable = this.stateGotoTable;
@@ -83,9 +86,10 @@ export default class Parser {
 
         const nextState = gotoTable?.get(reduceProduction.goal)!;
         traceBackStack.push(nextState);
-        this.printStack(token);
+        debug && this.printStack(token);
         continue;
       } else {
+        console.error('parse error at', token.position);
         throw 'invalid action table';
       }
     }

@@ -8,7 +8,7 @@ import Production from '../Grammar/Production';
 import State from '../Grammar/State';
 import StateItem from '../Grammar/StateItem';
 import GrammarUtils from '../Grammar/Utils';
-import { ETokenType, opPrecedence } from '../Lexer/TokenType';
+import { ETokenType } from '../Lexer/TokenType';
 import Utils from './Utils';
 import {
   ActionInfo,
@@ -48,7 +48,7 @@ export default class LALR1 {
   }
 
   private _extendState(state: State) {
-    if (!state.dirtyLookahead) return;
+    if (!state.needReInfer) return;
     this.closure(state);
     const newStates = this.inferNextState(state);
     for (const ns of newStates) {
@@ -156,12 +156,17 @@ export default class LALR1 {
         Utils.addMapSetItem(coreMap, stateItem.curSymbol, nextItem);
       }
 
-      stateItem.dirtyLookahead = false;
+      stateItem.needReInfer = false;
     }
 
     const newStates = new Set<State>();
     for (const [gs, cores] of coreMap.entries()) {
       const newState = State.create(Array.from(cores));
+      // if (
+      //   newState.id === 130 &&
+      //   Array.from(newState.items)[1]?.lookaheadSet.has(ETokenType.SEMICOLON)
+      // )
+      //   debugger;
       if (GrammarUtils.isTerminal(gs)) {
         stateActionTable.set(<Terminal>gs, {
           action: EAction.Shift,
@@ -281,6 +286,7 @@ export default class LALR1 {
   // }
 
   private computeFirstSetForNT(NT: ENonTerminal) {
+    // if (NT === ENonTerminal.parameter_declaration) debugger;
     // circle detect
     const idx = this._firstSetNTStack.findIndex((item) => item === NT);
     if (idx !== -1) {

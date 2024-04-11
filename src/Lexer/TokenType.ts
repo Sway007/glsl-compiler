@@ -83,18 +83,6 @@ export enum ETokenType {
   AMPERSAND,
   QUESTION,
 
-  // TEST:
-  a,
-  b,
-  c,
-  d,
-  e,
-  f,
-  g,
-  h,
-  n,
-  // TEST: end
-
   /** ε */
   EPSILON = 1998,
   EOF = 1999,
@@ -105,7 +93,9 @@ export enum EKeyword {
   CONST,
   BOOL,
   FLOAT,
+  DOUBLE,
   INT,
+  UINT,
   BREAK,
   CONTINUE,
   DO,
@@ -135,14 +125,17 @@ export enum EKeyword {
   SAMPLER_CUBE,
   STRUCT,
   VOID,
-  WHILE,
   TRUE,
   FALSE,
   PRECISION,
+  PRECISE,
   HIGHP,
   MEDIUMP,
   LOWP,
   INVARIANT,
+  SMOOTH,
+  FLAT,
+  NOPERSPECTIVE,
 }
 
 export type TokenType = ETokenType | EKeyword;
@@ -152,7 +145,9 @@ export const KeywordTable = new Map<string, EKeyword>([
   ['const', EKeyword.CONST],
   ['bool', EKeyword.BOOL],
   ['float', EKeyword.FLOAT],
+  ['double', EKeyword.DOUBLE],
   ['int', EKeyword.INT],
+  ['uint', EKeyword.UINT],
   ['break', EKeyword.BREAK],
   ['continue', EKeyword.CONTINUE],
   ['do', EKeyword.DO],
@@ -184,45 +179,19 @@ export const KeywordTable = new Map<string, EKeyword>([
   ['samplerCube', EKeyword.SAMPLER_CUBE],
   ['struct', EKeyword.STRUCT],
   ['void', EKeyword.VOID],
-  ['while', EKeyword.WHILE],
   ['true', EKeyword.TRUE],
   ['false', EKeyword.FALSE],
   ['precision', EKeyword.PRECISION],
+  ['precise', EKeyword.PRECISE],
   ['highp', EKeyword.HIGHP],
   ['mediump', EKeyword.MEDIUMP],
   ['lowp', EKeyword.LOWP],
   ['invariant', EKeyword.INVARIANT],
-
-  // TEST:
-
-  // TEST: end
-]);
-
-// TODO: fix
-export const opPrecedence: Map<ETokenType, number> = new Map([
-  [ETokenType.LEFT_PAREN, 0],
-  [ETokenType.RIGHT_PAREN, 0],
-
-  [ETokenType.DOT, 1],
-
-  [ETokenType.STAR, 2],
-  [ETokenType.SLASH, 2],
-
-  [ETokenType.PLUS, 3],
-  [ETokenType.DASH, 3],
-
-  [ETokenType.LEFT_OP, 4],
-  [ETokenType.RIGHT_OP, 4],
-
-  [ETokenType.LEFT_ANGLE, 5],
-  [ETokenType.RIGHT_ANGLE, 5],
-  [ETokenType.LE_OP, 5],
-  [ETokenType.GE_OP, 5],
-
-  [ETokenType.EQ_OP, 6],
-  [ETokenType.NE_OP, 6],
-
-  [ETokenType.AND_OP, 7],
-
-  [ETokenType.OR_OP, 8],
+  ['flat', EKeyword.FLAT],
+  ['smooth', EKeyword.SMOOTH],
+  ['noperspective', EKeyword.NOPERSPECTIVE],
+  // ['layout', EKeyword.LAYOUT],
+  // ['shared', EKeyword.SHARED],
+  // ['centroid', EKeyword.CENTROID],
+  // ['coherent', EKeyword.COHERENT],
 ]);
