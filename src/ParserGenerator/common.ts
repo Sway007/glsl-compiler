@@ -15,10 +15,6 @@ export enum EAction {
 export interface ActionInfo {
   action: EAction;
   target?: number;
-  reduceInfo?: {
-    to: number;
-    nt: ENonTerminal;
-  };
 }
 
 export enum ELALR_BIN_TABLE {

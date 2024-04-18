@@ -224,11 +224,28 @@ export default class Lexer {
       case '?':
         this.advance();
         return new Token(ETokenType.QUESTION, '?', this.getPosition());
+      case '"':
+        this.advance();
+        return this.scanStringConst();
 
       default:
         console.log('at position', this.getPosition());
-        throw `Unexpected character.`;
+        throw `Unexpected character ${this.curChar()}`;
     }
+  }
+
+  private scanStringConst() {
+    const buffer: string[] = [];
+    while (this.curChar() !== '"') {
+      buffer.push(this.curChar());
+      this.advance();
+    }
+    this.advance();
+    return new Token(
+      ETokenType.STRING_CONST,
+      buffer.join(''),
+      this.getPosition(buffer.length)
+    );
   }
 
   private scanWord() {

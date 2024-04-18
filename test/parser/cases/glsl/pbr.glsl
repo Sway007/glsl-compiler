@@ -19,9 +19,9 @@ float remapDepthBufferLinear01(float z) {
 uniform vec3 camera_Position;
 uniform vec3 camera_Forward;
 uniform vec4 camera_ProjectionParams;
-varying vec2 v_uv;
-varying vec3 v_normal;
-varying vec3 v_pos;
+in vec2 v_uv;
+in vec3 v_normal;
+in vec3 v_pos;
 struct DirectLight {
     vec3 color;
     vec3 direction;

@@ -12,7 +12,8 @@ import Lexer from '../../src/Lexer';
 // import testCase from './cases/typeCheck';
 // import testCase from './cases/simple';
 // import testCase from './cases/medium';
-import testCase from './cases/glsl';
+// import testCase from './cases/glsl';
+import testCase from './cases/galacean';
 
 // const grammar = Grammar.create(ENonTerminal.E, [
 //   [ENonTerminal.E, ENonTerminal.T, ENonTerminal.X],
