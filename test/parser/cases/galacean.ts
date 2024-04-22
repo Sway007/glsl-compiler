@@ -664,6 +664,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     ]
   ),
 
+  [
+    [ENonTerminal.variable_identifier, ETokenType.ID],
+    (sa, id) => {
+      console.log('variable:', (<Token>id).lexeme);
+    },
+  ],
+
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.multiplicative_expression,
     [
@@ -720,7 +727,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
   ]),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.primary_expression, [
-    [ETokenType.ID],
+    [ENonTerminal.variable_identifier],
     [ETokenType.INT_CONSTANT],
     [ETokenType.FLOAT_CONSTANT],
     [EKeyword.TRUE],
@@ -805,12 +812,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.function_definition,
-    [
-      [
-        ENonTerminal.function_prototype,
-        ENonTerminal.compound_statement_no_new_scope,
-      ],
-    ]
+    [[ENonTerminal.function_prototype, ENonTerminal.compound_statement]]
   ),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.function_prototype, [
@@ -826,14 +828,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.function_header, [
-    [
-      ENonTerminal.fully_specified_type,
-      ENonTerminal.function_name,
-      ETokenType.LEFT_PAREN,
-    ],
+    [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN],
   ]),
-
-  [[ENonTerminal.function_name, ETokenType.ID], null],
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.function_parameter_list,
@@ -865,18 +861,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
         ENonTerminal.type_specifier,
         ETokenType.ID,
         ENonTerminal.array_specifier_list,
-      ],
-    ]
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.compound_statement_no_new_scope,
-    [
-      [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
-      [
-        ETokenType.LEFT_BRACE,
-        ENonTerminal.statement_list,
-        ETokenType.RIGHT_BRACE,
       ],
     ]
   ),
@@ -953,7 +937,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     ],
   ]),
 
-  [[ENonTerminal.decl_identifier, ETokenType.ID], null],
+  [
+    [ENonTerminal.decl_identifier, ETokenType.ID],
+    (sa, ident) => {
+      console.log('new identifier:', <Token>ident);
+    },
+  ],
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.identifier_list, [
     [ETokenType.COMMA, ENonTerminal.decl_identifier],
@@ -1069,7 +1058,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
         ETokenType.LEFT_PAREN,
         ENonTerminal.condition,
         ETokenType.RIGHT_PAREN,
-        ENonTerminal.statement_no_new_scope,
+        ENonTerminal.statement,
       ],
       [
         EKeyword.FOR,
@@ -1077,16 +1066,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
         ENonTerminal.for_init_statement,
         ENonTerminal.for_rest_statement,
         ETokenType.RIGHT_PAREN,
-        ENonTerminal.statement_no_new_scope,
+        ENonTerminal.statement,
       ],
-    ]
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.statement_no_new_scope,
-    [
-      [ENonTerminal.compound_statement_no_new_scope],
-      [ENonTerminal.simple_statement],
     ]
   ),
 
@@ -1099,7 +1080,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     [ENonTerminal.expression],
     [
       ENonTerminal.fully_specified_type,
-      ETokenType.ID,
+      ENonTerminal.variable_identifier,
       ETokenType.EQUAL,
       ENonTerminal.initializer,
     ],

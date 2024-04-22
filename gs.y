@@ -405,7 +405,7 @@ postfix_expression:
     ;
 
 primary_expression:
-    id
+    variable_identifier
     | INT_CONSTANT
     | FLOAT_CONSTANT
     | true
@@ -413,9 +413,9 @@ primary_expression:
     | '(' expression ')'
     ;
 
-/* variable_identifier:
+variable_identifier:
     id
-    ; */
+    ;
 
 expression:
     assignment_expression
@@ -460,7 +460,7 @@ function_identifier:
     ;
 
 function_definition:
-    function_prototype compound_statement_no_new_scope
+    function_prototype compound_statement
     ;
 
 function_prototype:
@@ -473,11 +473,7 @@ function_declarator:
     ;
 
 function_header:
-    fully_specified_type function_name '('
-    ;
-
-function_name:
-    id
+    fully_specified_type id '('
     ;
 
 fully_specified_type:
@@ -500,11 +496,6 @@ parameter_declaration:
 parameter_declarator:
     type_specifier id
     | type_specifier id array_specifier_list
-    ;
-
-compound_statement_no_new_scope:
-    '{' '}'
-    | '{' statement_list '}'
     ;
 
 statement_list:
@@ -587,13 +578,8 @@ selection_statement:
     ;
 
 iteration_statement:
-    WHILE '(' condition ')' statement_no_new_scope
-    | FOR '(' for_init_statement for_rest_statement ')' statement_no_new_scope
-    ;
-
-statement_no_new_scope:
-    compound_statement_no_new_scope
-    | simple_statement
+    WHILE '(' condition ')' statement
+    | FOR '(' for_init_statement for_rest_statement ')' statement
     ;
 
 for_init_statement:
@@ -603,7 +589,7 @@ for_init_statement:
 
 condition:
     expression
-    | fully_specified_type id '=' initializer
+    | fully_specified_type variable_identifier '=' initializer
     ;
 
 for_rest_statement:

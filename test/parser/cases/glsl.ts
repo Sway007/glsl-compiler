@@ -560,13 +560,10 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
 
   [[ENonTerminal.declaration_statement, ENonTerminal.declaration], null],
 
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.statement_no_new_scope,
-    [
-      [ENonTerminal.compound_statement_with_scope],
-      [ENonTerminal.simple_statement],
-    ]
-  ),
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.statement, [
+    [ENonTerminal.compound_statement_with_scope],
+    [ENonTerminal.simple_statement],
+  ]),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.simple_statement, [
     [ENonTerminal.declaration_statement],
@@ -590,34 +587,25 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.statement_with_scope,
-    [
-      [ENonTerminal.compound_statement_no_new_scope],
-      [ENonTerminal.simple_statement],
-    ]
+    [[ENonTerminal.compound_statement], [ENonTerminal.simple_statement]]
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.compound_statement_no_new_scope,
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.compound_statement, [
+    [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
     [
-      [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
-      [
-        ETokenType.LEFT_BRACE,
-        ENonTerminal.statement_list,
-        ETokenType.RIGHT_BRACE,
-      ],
-    ]
-  ),
+      ETokenType.LEFT_BRACE,
+      ENonTerminal.statement_list,
+      ETokenType.RIGHT_BRACE,
+    ],
+  ]),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.statement_list, [
-    [ENonTerminal.statement_no_new_scope],
-    [ENonTerminal.statement_list, ENonTerminal.statement_no_new_scope],
+    [ENonTerminal.statement],
+    [ENonTerminal.statement_list, ENonTerminal.statement],
   ]),
 
   [
-    [
-      ENonTerminal.iteration_statement_no_new_scope,
-      ENonTerminal.statement_no_new_scope,
-    ],
+    [ENonTerminal.iteration_statement_no_new_scope, ENonTerminal.statement],
     null,
   ],
 
@@ -694,7 +682,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     [
       ENonTerminal.function_definition,
       ENonTerminal.function_prototype,
-      ENonTerminal.compound_statement_no_new_scope,
+      ENonTerminal.compound_statement,
     ],
     null,
   ],
