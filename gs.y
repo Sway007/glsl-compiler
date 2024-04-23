@@ -309,14 +309,19 @@ invariant_qualifier:
     INVARIANT
     ;
 
+integer_constant_expression_operator:
+    '+'
+    | '-'
+    | '*'
+    | '/'
+    | '%'
+    ;
+
 integer_constant_expression:
     id
     | INT_CONSTANT
-    | INT_CONSTANT '+' INT_CONSTANT
-    | INT_CONSTANT '-' INT_CONSTANT
-    | INT_CONSTANT '*' INT_CONSTANT
-    | INT_CONSTANT '/' INT_CONSTANT
-    | INT_CONSTANT '%' INT_CONSTANT
+    | integer_constant_expression integer_constant_expression_operator INT_CONSTANT
+    | integer_constant_expression integer_constant_expression_operator id
     ;
 
 conditional_expression:

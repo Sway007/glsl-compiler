@@ -504,15 +504,31 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ]),
 
   ...GrammarUtils.createProductionWithOptions(
+    ENonTerminal.integer_constant_expression_operator,
+    [
+      [ETokenType.PLUS],
+      [ETokenType.DASH],
+      [ETokenType.STAR],
+      [ETokenType.SLASH],
+      [ETokenType.PERCENT],
+    ]
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.integer_constant_expression,
     [
       [ETokenType.ID],
       [ETokenType.INT_CONSTANT],
-      [ETokenType.INT_CONSTANT, ETokenType.PLUS, ETokenType.INT_CONSTANT],
-      [ETokenType.INT_CONSTANT, ETokenType.DASH, ETokenType.INT_CONSTANT],
-      [ETokenType.INT_CONSTANT, ETokenType.STAR, ETokenType.INT_CONSTANT],
-      [ETokenType.INT_CONSTANT, ETokenType.SLASH, ETokenType.INT_CONSTANT],
-      [ETokenType.INT_CONSTANT, ETokenType.PERCENT, ETokenType.INT_CONSTANT],
+      [
+        ENonTerminal.integer_constant_expression,
+        ENonTerminal.integer_constant_expression_operator,
+        ETokenType.INT_CONSTANT,
+      ],
+      [
+        ENonTerminal.integer_constant_expression,
+        ENonTerminal.integer_constant_expression_operator,
+        ETokenType.ID,
+      ],
     ]
   ),
 
