@@ -7,16 +7,16 @@ import {
 import GrammarUtils from '../../../src/Grammar/Utils';
 import Token from '../../../src/Lexer/Token';
 import { EKeyword, ETokenType } from '../../../src/Lexer/TokenType';
-import { DeclarationAst, EType } from '../../../src/Parser/AST';
 import SematicAnalyzer, {
   TranslationRule,
 } from '../../../src/Parser/SemanticAnalyzer';
-import { SymbolInfo } from '../../../src/Parser/SymbolTable';
+import { SymbolInfo, VarSymbol } from '../../../src/Parser/SymbolTable';
 import { LocRange } from '../../../src/common/Position';
 import { TestCase } from '../types';
 import { join } from 'path';
+import { ASTNode } from '../../../src/Parser/AST';
 
-const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
+const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_shader_program, [
     [
       EKeyword.GL_Shader,
@@ -36,7 +36,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       // TODO:
       ETokenType.RIGHT_BRACE,
     ],
-    null,
+    undefined,
   ],
 
   [
@@ -46,7 +46,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ETokenType.LEFT_BRACE,
       ETokenType.RIGHT_BRACE,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -87,11 +87,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ENonTerminal.gl_subshader_program,
       EKeyword.GL_SubShader,
       ETokenType.STRING_CONST,
-      ETokenType.LEFT_BRACE,
+      ENonTerminal.scope_brace,
       ENonTerminal.gl_subshader_global_declaration_list,
-      ETokenType.RIGHT_BRACE,
+      ENonTerminal.scope_end_brace,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -123,7 +123,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ENonTerminal.gl_tag_assignment_list,
       ETokenType.RIGHT_BRACE,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -146,7 +146,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ETokenType.EQUAL,
       ENonTerminal.gl_tag_value,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_tag_id, [
@@ -163,11 +163,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ENonTerminal.gl_pass_program,
       EKeyword.GL_Pass,
       ETokenType.STRING_CONST,
-      ETokenType.LEFT_BRACE,
+      ENonTerminal.scope_brace,
       ENonTerminal.gl_pass_global_declaration_list,
-      ETokenType.RIGHT_BRACE,
+      ENonTerminal.scope_end_brace,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -196,7 +196,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       EKeyword.GL_UsePass,
       ETokenType.STRING_CONST,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -281,7 +281,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ETokenType.ID,
       ETokenType.SEMICOLON,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -316,7 +316,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       ETokenType.ID,
       ETokenType.SEMICOLON,
     ],
-    null,
+    undefined,
   ],
 
   ...GrammarUtils.createProductionWithOptions(
@@ -366,12 +366,14 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
       [EKeyword.U_SAMPLER3D],
       [EKeyword.U_SAMPLER_CUBE],
       [EKeyword.U_SAMPLER2D_ARRAY],
-    ]
+    ],
+    (sa, token) => {}
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.type_specifier_nonarray,
-    [[ENonTerminal.ext_builtin_type_specifier_nonarray], [ETokenType.ID]]
+    [[ETokenType.ID], [ENonTerminal.ext_builtin_type_specifier_nonarray]],
+    [(sa, id) => {}]
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -496,15 +498,23 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     [ETokenType.LEFT_BRACKET, ETokenType.RIGHT_BRACKET],
     [
       ETokenType.LEFT_BRACKET,
-      ENonTerminal.constant_expression,
+      ENonTerminal.integer_constant_expression,
       ETokenType.RIGHT_BRACKET,
     ],
   ]),
 
-  [
-    [ENonTerminal.constant_expression, ENonTerminal.conditional_expression],
-    null,
-  ],
+  ...GrammarUtils.createProductionWithOptions(
+    ENonTerminal.integer_constant_expression,
+    [
+      [ETokenType.ID],
+      [ETokenType.INT_CONSTANT],
+      [ETokenType.INT_CONSTANT, ETokenType.PLUS, ETokenType.INT_CONSTANT],
+      [ETokenType.INT_CONSTANT, ETokenType.DASH, ETokenType.INT_CONSTANT],
+      [ETokenType.INT_CONSTANT, ETokenType.STAR, ETokenType.INT_CONSTANT],
+      [ETokenType.INT_CONSTANT, ETokenType.SLASH, ETokenType.INT_CONSTANT],
+      [ETokenType.INT_CONSTANT, ETokenType.PERCENT, ETokenType.INT_CONSTANT],
+    ]
+  ),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.conditional_expression,
@@ -773,7 +783,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     ]
   ),
 
-  [[ENonTerminal.function_call, ENonTerminal.function_call_generic], null],
+  [[ENonTerminal.function_call, ENonTerminal.function_call_generic], undefined],
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.function_call_generic,
@@ -878,9 +888,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.compound_statement, [
     [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
     [
-      ETokenType.LEFT_BRACE,
+      ENonTerminal.scope_brace,
       ENonTerminal.statement_list,
-      ETokenType.RIGHT_BRACE,
+      ENonTerminal.scope_end_brace,
     ],
   ]),
 
@@ -937,12 +947,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     ],
   ]),
 
-  [
-    [ENonTerminal.decl_identifier, ETokenType.ID],
-    (sa, ident) => {
-      console.log('new identifier:', <Token>ident);
-    },
-  ],
+  [[ENonTerminal.decl_identifier, ETokenType.ID], undefined],
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.identifier_list, [
     [ETokenType.COMMA, ENonTerminal.decl_identifier],
@@ -986,27 +991,31 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     ]
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.single_declaration, [
-    [ENonTerminal.fully_specified_type, ENonTerminal.decl_identifier],
+  ...GrammarUtils.createProductionWithOptions(
+    ENonTerminal.single_declaration,
     [
-      ENonTerminal.fully_specified_type,
-      ENonTerminal.decl_identifier,
-      ENonTerminal.array_specifier_list,
+      [ENonTerminal.fully_specified_type, ENonTerminal.decl_identifier],
+      [
+        ENonTerminal.fully_specified_type,
+        ENonTerminal.decl_identifier,
+        ENonTerminal.array_specifier_list,
+      ],
+      [
+        ENonTerminal.fully_specified_type,
+        ENonTerminal.decl_identifier,
+        ENonTerminal.array_specifier_list,
+        ETokenType.EQUAL,
+        ENonTerminal.initializer,
+      ],
+      [
+        ENonTerminal.fully_specified_type,
+        ENonTerminal.decl_identifier,
+        ETokenType.EQUAL,
+        ENonTerminal.initializer,
+      ],
     ],
-    [
-      ENonTerminal.fully_specified_type,
-      ENonTerminal.decl_identifier,
-      ENonTerminal.array_specifier_list,
-      ETokenType.EQUAL,
-      ENonTerminal.initializer,
-    ],
-    [
-      ENonTerminal.fully_specified_type,
-      ENonTerminal.decl_identifier,
-      ETokenType.EQUAL,
-      ENonTerminal.initializer,
-    ],
-  ]),
+    []
+  ),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.initializer, [
     [ENonTerminal.assignment_expression],
@@ -1103,6 +1112,27 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | null][] = [
     [EKeyword.RETURN, ENonTerminal.expression, ETokenType.SEMICOLON],
     [EKeyword.DISCARD, ETokenType.SEMICOLON],
   ]),
+
+  [
+    [ENonTerminal.scope_brace, ETokenType.LEFT_BRACE],
+    (sa, leftBrace) => {
+      const loc = new LocRange(
+        (<Token>leftBrace).position,
+        (<Token>leftBrace).position.offset(1)
+      );
+      ASTNode.create(ASTNode.ScopeBrace, sa, loc);
+    },
+  ],
+  [
+    [ENonTerminal.scope_end_brace, ETokenType.RIGHT_BRACE],
+    (sa, rightBrace) => {
+      const loc = new LocRange(
+        (<Token>rightBrace).position,
+        (<Token>rightBrace).position.offset(1)
+      );
+      ASTNode.create(ASTNode.ScopeEndBrace, sa, loc);
+    },
+  ],
 ];
 
 const createGrammar = () =>

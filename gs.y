@@ -113,7 +113,7 @@ gl_shader_global_declaration_list:
 
 
 gl_subshader_program:
-    subshader string_const '{' gl_subshader_global_declaration_list '}'
+    subshader string_const scope_brace gl_subshader_global_declaration_list scope_end_brace
     ;
 
 gl_subshader_global_declaration_list:
@@ -153,7 +153,7 @@ gl_tag_value:
     ;
 
 gl_pass_program:
-    pass string_const '{' gl_pass_global_declaration_list '}'
+    pass string_const scope_brace gl_pass_global_declaration_list scope_end_brace
     ;
 
 gl_pass_global_declaration_list:
@@ -265,7 +265,7 @@ array_specifier_list:
 
 array_specifier:
     '[' ']'
-    | '[' constant_expression ']'
+    | '[' integer_constant_expression ']'
     ;
 
 type_specifier:
@@ -309,8 +309,14 @@ invariant_qualifier:
     INVARIANT
     ;
 
-constant_expression:
-    conditional_expression
+integer_constant_expression:
+    id
+    | INT_CONSTANT
+    | INT_CONSTANT '+' INT_CONSTANT
+    | INT_CONSTANT '-' INT_CONSTANT
+    | INT_CONSTANT '*' INT_CONSTANT
+    | INT_CONSTANT '/' INT_CONSTANT
+    | INT_CONSTANT '%' INT_CONSTANT
     ;
 
 conditional_expression:
@@ -510,7 +516,7 @@ statement:
 
 compound_statement:
     '{' '}'
-    | '{' statement_list '}'
+    | scope_brace statement_list scope_end_brace
     ;
 
 simple_statement:
@@ -608,5 +614,13 @@ jump_statement:
     | RETURN ';'
     | RETURN expression ';'
     | DISCARD ';'
+    ;
+
+scope_brace:
+    '{'
+    ;
+
+scope_end_brace:
+    '}'
     ;
 %%
