@@ -10,11 +10,10 @@ import { EKeyword, ETokenType } from '../../../src/Lexer/TokenType';
 import SematicAnalyzer, {
   TranslationRule,
 } from '../../../src/Parser/SemanticAnalyzer';
-import { SymbolInfo, VarSymbol } from '../../../src/Parser/SymbolTable';
 import { LocRange } from '../../../src/common/Position';
 import { TestCase } from '../types';
 import { join } from 'path';
-import { ASTNode } from '../../../src/Parser/AST';
+import { ASTNode, TreeNode } from '../../../src/Parser/AST';
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_shader_program, [
@@ -87,9 +86,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ENonTerminal.gl_subshader_program,
       EKeyword.GL_SubShader,
       ETokenType.STRING_CONST,
-      ENonTerminal.scope_brace,
+      ENonTerminal.shader_scope_brace,
       ENonTerminal.gl_subshader_global_declaration_list,
-      ENonTerminal.scope_end_brace,
+      ENonTerminal.shader_scope_end_brace,
     ],
     undefined,
   ],
@@ -163,9 +162,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ENonTerminal.gl_pass_program,
       EKeyword.GL_Pass,
       ETokenType.STRING_CONST,
-      ENonTerminal.scope_brace,
+      ENonTerminal.shader_scope_brace,
       ENonTerminal.gl_pass_global_declaration_list,
-      ENonTerminal.scope_end_brace,
+      ENonTerminal.shader_scope_end_brace,
     ],
     undefined,
   ],
@@ -187,6 +186,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.gl_common_global_declaration],
       [ENonTerminal.gl_main_shader_assignment],
       [ENonTerminal.gl_tag_specifier],
+      [ENonTerminal.precision_specifier],
     ]
   ),
 
@@ -319,6 +319,16 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     undefined,
   ],
 
+  [
+    [
+      ENonTerminal.gl_variable_declaration,
+      EKeyword.GL_RenderQueueType,
+      ETokenType.ID,
+      ETokenType.SEMICOLON,
+    ],
+    undefined,
+  ],
+
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.ext_builtin_type_specifier_nonarray,
     [
@@ -388,7 +398,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [ENonTerminal.type_specifier_nonarray],
     [
       ENonTerminal.ext_builtin_type_specifier_nonarray,
-      ENonTerminal.array_specifier_list,
+      ENonTerminal.array_specifier,
     ],
   ]),
 
@@ -483,16 +493,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.struct_declarator, [
     [ETokenType.ID],
-    [ETokenType.ID, ENonTerminal.array_specifier_list],
+    [ETokenType.ID, ENonTerminal.array_specifier],
   ]),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.array_specifier_list,
-    [
-      [ENonTerminal.array_specifier],
-      [ENonTerminal.array_specifier_list, ENonTerminal.array_specifier],
-    ]
-  ),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.array_specifier, [
     [ETokenType.LEFT_BRACKET, ETokenType.RIGHT_BRACKET],
@@ -690,13 +692,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ]
   ),
 
-  [
-    [ENonTerminal.variable_identifier, ETokenType.ID],
-    (sa, id) => {
-      console.log('variable:', (<Token>id).lexeme);
-    },
-  ],
-
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.multiplicative_expression,
     [
@@ -753,7 +748,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ]),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.primary_expression, [
-    [ENonTerminal.variable_identifier],
+    [ETokenType.ID],
     [ETokenType.INT_CONSTANT],
     [ETokenType.FLOAT_CONSTANT],
     [EKeyword.TRUE],
@@ -874,8 +869,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [ENonTerminal.type_qualifier, ENonTerminal.parameter_declarator],
       [ENonTerminal.parameter_declarator],
-      [ENonTerminal.type_qualifier, ENonTerminal.type_specifier],
-      [ENonTerminal.type_specifier],
     ]
   ),
 
@@ -886,7 +879,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [
         ENonTerminal.type_specifier,
         ETokenType.ID,
-        ENonTerminal.array_specifier_list,
+        ENonTerminal.array_specifier,
       ],
     ]
   ),
@@ -927,33 +920,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ENonTerminal.ext_builtin_type_specifier_nonarray,
       ETokenType.SEMICOLON,
     ],
-    [
-      ENonTerminal.type_qualifier,
-      ETokenType.ID,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declaration_list,
-      ETokenType.RIGHT_BRACE,
-      ETokenType.SEMICOLON,
-    ],
-    [
-      ENonTerminal.type_qualifier,
-      ETokenType.ID,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declaration_list,
-      ETokenType.RIGHT_BRACE,
-      ENonTerminal.decl_identifier,
-      ETokenType.SEMICOLON,
-    ],
-    [
-      ENonTerminal.type_qualifier,
-      ETokenType.ID,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declaration_list,
-      ETokenType.RIGHT_BRACE,
-      ENonTerminal.decl_identifier,
-      ENonTerminal.array_specifier_list,
-      ETokenType.SEMICOLON,
-    ],
     [ENonTerminal.type_qualifier, ETokenType.ID, ETokenType.SEMICOLON],
     [
       ENonTerminal.type_qualifier,
@@ -963,44 +929,34 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ],
   ]),
 
-  [[ENonTerminal.decl_identifier, ETokenType.ID], undefined],
-
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.identifier_list, [
-    [ETokenType.COMMA, ENonTerminal.decl_identifier],
-    [
-      ENonTerminal.identifier_list,
-      ETokenType.COMMA,
-      ENonTerminal.decl_identifier,
-    ],
+    [ETokenType.COMMA, ETokenType.ID],
+    [ENonTerminal.identifier_list, ETokenType.COMMA, ETokenType.ID],
   ]),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.init_declarator_list,
     [
       [ENonTerminal.single_declaration],
+      [ENonTerminal.init_declarator_list, ETokenType.COMMA, ETokenType.ID],
       [
         ENonTerminal.init_declarator_list,
         ETokenType.COMMA,
-        ENonTerminal.decl_identifier,
+        ETokenType.ID,
+        ENonTerminal.array_specifier,
       ],
       [
         ENonTerminal.init_declarator_list,
         ETokenType.COMMA,
-        ENonTerminal.decl_identifier,
-        ENonTerminal.array_specifier_list,
-      ],
-      [
-        ENonTerminal.init_declarator_list,
-        ETokenType.COMMA,
-        ENonTerminal.decl_identifier,
-        ENonTerminal.array_specifier_list,
+        ETokenType.ID,
+        ENonTerminal.array_specifier,
         ETokenType.EQUAL,
         ENonTerminal.initializer,
       ],
       [
         ENonTerminal.init_declarator_list,
         ETokenType.COMMA,
-        ENonTerminal.decl_identifier,
+        ETokenType.ID,
         ETokenType.EQUAL,
         ENonTerminal.initializer,
       ],
@@ -1010,22 +966,22 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.single_declaration,
     [
-      [ENonTerminal.fully_specified_type, ENonTerminal.decl_identifier],
+      [ENonTerminal.fully_specified_type, ETokenType.ID],
       [
         ENonTerminal.fully_specified_type,
-        ENonTerminal.decl_identifier,
-        ENonTerminal.array_specifier_list,
+        ETokenType.ID,
+        ENonTerminal.array_specifier,
       ],
       [
         ENonTerminal.fully_specified_type,
-        ENonTerminal.decl_identifier,
-        ENonTerminal.array_specifier_list,
+        ETokenType.ID,
+        ENonTerminal.array_specifier,
         ETokenType.EQUAL,
         ENonTerminal.initializer,
       ],
       [
         ENonTerminal.fully_specified_type,
-        ENonTerminal.decl_identifier,
+        ETokenType.ID,
         ETokenType.EQUAL,
         ENonTerminal.initializer,
       ],
@@ -1096,6 +1052,17 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ]
   ),
 
+  [
+    [
+      ENonTerminal.precision_specifier,
+      EKeyword.PRECISION,
+      ENonTerminal.precision_qualifier,
+      ENonTerminal.ext_builtin_type_specifier_nonarray,
+      ETokenType.SEMICOLON,
+    ],
+    undefined,
+  ],
+
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.for_init_statement, [
     [ENonTerminal.expression_statement],
     [ENonTerminal.declaration],
@@ -1105,7 +1072,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [ENonTerminal.expression],
     [
       ENonTerminal.fully_specified_type,
-      ENonTerminal.variable_identifier,
+      ETokenType.ID,
       ETokenType.EQUAL,
       ENonTerminal.initializer,
     ],
@@ -1136,7 +1103,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         (<Token>leftBrace).position,
         (<Token>leftBrace).position.offset(1)
       );
-      ASTNode.create(ASTNode.ScopeBrace, sa, loc);
+      ASTNode.create(ASTNode.ScopeBrace, sa, loc, [leftBrace]);
     },
   ],
   [
@@ -1146,7 +1113,29 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         (<Token>rightBrace).position,
         (<Token>rightBrace).position.offset(1)
       );
-      ASTNode.create(ASTNode.ScopeEndBrace, sa, loc);
+      ASTNode.create(ASTNode.ScopeEndBrace, sa, loc, [rightBrace]);
+    },
+  ],
+  [
+    [ENonTerminal.shader_scope_brace, ENonTerminal.scope_brace],
+    (sa, leftBrace) => {
+      ASTNode.create(
+        ASTNode.ShaderScopeBrace,
+        sa,
+        (<TreeNode>leftBrace).location,
+        [leftBrace]
+      );
+    },
+  ],
+  [
+    [ENonTerminal.shader_scope_end_brace, ENonTerminal.scope_end_brace],
+    (sa, rightBrace) => {
+      ASTNode.create(
+        ASTNode.ShaderScopeEndBrace,
+        sa,
+        (<TreeNode>rightBrace).location,
+        [rightBrace]
+      );
     },
   ],
 ];

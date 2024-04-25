@@ -113,7 +113,7 @@ gl_shader_global_declaration_list:
 
 
 gl_subshader_program:
-    subshader string_const scope_brace gl_subshader_global_declaration_list scope_end_brace
+    subshader string_const shader_scope_brace gl_subshader_global_declaration_list shader_scope_end_brace
     ;
 
 gl_subshader_global_declaration_list:
@@ -153,7 +153,7 @@ gl_tag_value:
     ;
 
 gl_pass_program:
-    pass string_const scope_brace gl_pass_global_declaration_list scope_end_brace
+    pass string_const shader_scope_brace gl_pass_global_declaration_list shader_scope_end_brace
     ;
 
 gl_pass_global_declaration_list:
@@ -165,6 +165,8 @@ gl_pass_global_declaration:
     gl_common_global_declaration
     | gl_main_shader_assignment
     | gl_tag_specifier
+    // 精度声明
+    | precision_specifier
     ;
 
 gl_use_pass_declaration:
@@ -215,8 +217,15 @@ gl_render_queue_assignment:
     | render_queue_type '=' render_queue_type '.' id ';'
     ;
 
+// TODO: 确认
 gl_variable_declaration:
     fully_specified_type id ';'
+    | render_queue_type id;
+    ;
+
+precision_specifier:
+    // 精度声明
+    PRECISION precision_qualifier ext_builtin_type_specifier_nonarray ';'
     ;
 
 // TODO: more
@@ -255,12 +264,7 @@ struct_declarator_list:
 
 struct_declarator:
     id
-    | id array_specifier_list
-    ;
-
-array_specifier_list:
-    array_specifier
-    | array_specifier_list array_specifier
+    | id array_specifier
     ;
 
 array_specifier:
@@ -270,7 +274,7 @@ array_specifier:
 
 type_specifier:
     type_specifier_nonarray
-    | ext_builtin_type_specifier_nonarray array_specifier_list
+    | ext_builtin_type_specifier_nonarray array_specifier
     ;
 
 precision_qualifier:
@@ -416,16 +420,12 @@ postfix_expression:
     ;
 
 primary_expression:
-    variable_identifier
+    id
     | INT_CONSTANT
     | FLOAT_CONSTANT
     | true
     | false
     | '(' expression ')'
-    ;
-
-variable_identifier:
-    id
     ;
 
 expression:
@@ -500,13 +500,11 @@ function_parameter_list:
 parameter_declaration:
     type_qualifier parameter_declarator
     | parameter_declarator
-    | type_qualifier type_specifier
-    | type_specifier
     ;
 
 parameter_declarator:
     type_specifier id
-    | type_specifier id array_specifier_list
+    | type_specifier id array_specifier
     ;
 
 statement_list:
@@ -535,36 +533,36 @@ simple_statement:
 declaration:
     function_prototype ';'
     | init_declarator_list ';'
-    | PRECISION precision_qualifier ext_builtin_type_specifier_nonarray ';'
+    // interface block #4.3.7 ，引擎暂不支持
     | type_qualifier id '{' struct_declaration_list '}' ';'
-    | type_qualifier id '{' struct_declaration_list '}' decl_identifier ';'
-    | type_qualifier id '{' struct_declaration_list '}' decl_identifier array_specifier_list ';'
+    | type_qualifier id '{' struct_declaration_list '}' id ';'
+    | type_qualifier id '{' struct_declaration_list '}' id array_specifier ';'
+    // invariant qualifier #4.6.1
     | type_qualifier id ';'
     | type_qualifier id identifier_list ';'
     ;
 
-decl_identifier:
-    id
-    ;
+/* interface_block:
+    type_qualifier */
 
 identifier_list:
-    ',' decl_identifier
-    | identifier_list ',' decl_identifier
+    ',' id
+    | identifier_list ',' id
     ;
 
 init_declarator_list:
     single_declaration
-    | init_declarator_list ',' decl_identifier
-    | init_declarator_list ',' decl_identifier array_specifier_list
-    | init_declarator_list ',' decl_identifier array_specifier_list '=' initializer
-    | init_declarator_list ',' decl_identifier '=' initializer
+    | init_declarator_list ',' id
+    | init_declarator_list ',' id array_specifier
+    | init_declarator_list ',' id array_specifier '=' initializer
+    | init_declarator_list ',' id '=' initializer
     ;
 
 single_declaration:
-    fully_specified_type decl_identifier
-    | fully_specified_type decl_identifier array_specifier_list
-    | fully_specified_type decl_identifier array_specifier_list '=' initializer
-    | fully_specified_type decl_identifier '=' initializer
+    fully_specified_type id
+    | fully_specified_type id array_specifier
+    | fully_specified_type id '=' initializer
+    | fully_specified_type id array_specifier '=' initializer
     ;
 
 initializer:
@@ -600,7 +598,7 @@ for_init_statement:
 
 condition:
     expression
-    | fully_specified_type variable_identifier '=' initializer
+    | fully_specified_type id '=' initializer
     ;
 
 for_rest_statement:
@@ -619,6 +617,14 @@ jump_statement:
     | RETURN ';'
     | RETURN expression ';'
     | DISCARD ';'
+    ;
+
+shader_scope_brace:
+    scope_brace
+    ;
+
+shader_scope_end_brace:
+    scope_end_brace
     ;
 
 scope_brace:

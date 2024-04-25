@@ -37,6 +37,8 @@ export enum ENonTerminal {
 
   ext_builtin_type_specifier_nonarray,
 
+  precision_specifier,
+
   // glsl
   translation_unit,
   variable_identifier,
@@ -69,7 +71,8 @@ export enum ENonTerminal {
   assignment_expression,
   assignment_operator,
   expression,
-  constant_expression,
+  integer_constant_expression,
+  integer_constant_expression_operator,
   declaration,
   function_prototype,
   function_declarator,
@@ -125,6 +128,10 @@ export enum ENonTerminal {
   bool_constant,
   function_identifier_node,
   typename_identifier_node,
+  scope_brace,
+  scope_end_brace,
+  shader_scope_brace,
+  shader_scope_end_brace,
 
   // TEST:
   E,
