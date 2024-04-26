@@ -278,7 +278,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ENonTerminal.gl_main_shader_assignment,
       ENonTerminal.gl_main_shader_entry,
       ETokenType.EQUAL,
-      ETokenType.ID,
+      ENonTerminal.variable_identifier,
       ETokenType.SEMICOLON,
     ],
     undefined,
@@ -289,13 +289,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [[EKeyword.GL_VertexShader], [EKeyword.GL_FragmentShader]]
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_render_queue_assignment,
     [
       [
         EKeyword.GL_RenderQueueType,
         ETokenType.EQUAL,
-        ETokenType.ID,
+        ENonTerminal.variable_identifier,
         ETokenType.SEMICOLON,
       ],
       [
@@ -306,30 +306,20 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.ID,
         ETokenType.SEMICOLON,
       ],
-    ]
+    ],
+    ASTNode.GLRenderQueueAssignment
   ),
 
-  [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_variable_declaration,
     [
-      ENonTerminal.gl_variable_declaration,
-      ENonTerminal.fully_specified_type,
-      ETokenType.ID,
-      ETokenType.SEMICOLON,
+      [EKeyword.GL_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
+      [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON],
     ],
-    undefined,
-  ],
+    ASTNode.GLVariableDeclaration
+  ),
 
-  [
-    [
-      ENonTerminal.gl_variable_declaration,
-      EKeyword.GL_RenderQueueType,
-      ETokenType.ID,
-      ETokenType.SEMICOLON,
-    ],
-    undefined,
-  ],
-
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.ext_builtin_type_specifier_nonarray,
     [
       [EKeyword.VOID],
@@ -377,37 +367,46 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [EKeyword.U_SAMPLER_CUBE],
       [EKeyword.U_SAMPLER2D_ARRAY],
     ],
-    (sa, token) => {}
+    ASTNode.ExtBuiltinTypeSpecifierNonArray
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.type_specifier_nonarray,
     [[ETokenType.ID], [ENonTerminal.ext_builtin_type_specifier_nonarray]],
-    [(sa, id) => {}]
+    ASTNode.TypeSpecifierNonArray
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.fully_specified_type,
     [
       [ENonTerminal.type_specifier],
       [ENonTerminal.type_qualifier, ENonTerminal.type_specifier],
-    ]
+    ],
+    ASTNode.FullySpecifiedType
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.type_specifier, [
-    [ENonTerminal.type_specifier_nonarray],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.type_specifier,
     [
-      ENonTerminal.ext_builtin_type_specifier_nonarray,
-      ENonTerminal.array_specifier,
+      [ENonTerminal.type_specifier_nonarray],
+      [
+        ENonTerminal.ext_builtin_type_specifier_nonarray,
+        ENonTerminal.array_specifier,
+      ],
     ],
-  ]),
+    ASTNode.TypeSpecifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.type_qualifier, [
-    [ENonTerminal.single_type_qualifier],
-    [ENonTerminal.type_qualifier, ENonTerminal.single_type_qualifier],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.type_qualifier,
+    [
+      [ENonTerminal.single_type_qualifier],
+      [ENonTerminal.type_qualifier, ENonTerminal.single_type_qualifier],
+    ],
+    ASTNode.TypeQualifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.single_type_qualifier,
     [
       [ENonTerminal.storage_qualifier],
@@ -415,71 +414,88 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.interpolation_qualifier],
       [ENonTerminal.invariant_qualifier],
       [EKeyword.PRECISE],
-    ]
+    ],
+    ASTNode.SingleTypeQualifier
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.storage_qualifier, [
-    [EKeyword.CONST],
-    [EKeyword.IN],
-    [EKeyword.INOUT],
-    [EKeyword.OUT],
-    [EKeyword.CENTROID],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.storage_qualifier,
+    [
+      [EKeyword.CONST],
+      [EKeyword.IN],
+      [EKeyword.INOUT],
+      [EKeyword.OUT],
+      [EKeyword.CENTROID],
+    ],
+    ASTNode.StorageQualifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.interpolation_qualifier,
-    [[EKeyword.SMOOTH], [EKeyword.FLAT]]
+    [[EKeyword.SMOOTH], [EKeyword.FLAT]],
+    ASTNode.InterpolationQualifier
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.invariant_qualifier,
-    [[EKeyword.INVARIANT]]
+    [[EKeyword.INVARIANT]],
+    ASTNode.InvariantQualifier
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.precision_qualifier,
-    [[EKeyword.HIGHP], [EKeyword.MEDIUMP], [EKeyword.LOWP]]
+    [[EKeyword.HIGHP], [EKeyword.MEDIUMP], [EKeyword.LOWP]],
+    ASTNode.PrecisionQualifier
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.struct_specifier, [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.struct_specifier,
     [
-      EKeyword.STRUCT,
-      ETokenType.ID,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declaration_list,
-      ETokenType.RIGHT_BRACE,
+      [
+        EKeyword.STRUCT,
+        ETokenType.ID,
+        ETokenType.LEFT_BRACE,
+        ENonTerminal.struct_declaration_list,
+        ETokenType.RIGHT_BRACE,
+      ],
+      [
+        EKeyword.STRUCT,
+        ETokenType.LEFT_BRACE,
+        ENonTerminal.struct_declaration_list,
+        ETokenType.RIGHT_BRACE,
+      ],
     ],
-    [
-      EKeyword.STRUCT,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.struct_declaration_list,
-      ETokenType.RIGHT_BRACE,
-    ],
-  ]),
+    ASTNode.StructSpecifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.struct_declaration_list,
     [
       [ENonTerminal.struct_declaration],
       [ENonTerminal.struct_declaration_list, ENonTerminal.struct_declaration],
-    ]
+    ],
+    ASTNode.StructDeclarationList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.struct_declaration, [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.struct_declaration,
     [
-      ENonTerminal.type_specifier,
-      ENonTerminal.struct_declarator_list,
-      ETokenType.SEMICOLON,
+      [
+        ENonTerminal.type_specifier,
+        ENonTerminal.struct_declarator_list,
+        ETokenType.SEMICOLON,
+      ],
+      [
+        ENonTerminal.type_qualifier,
+        ENonTerminal.type_specifier,
+        ENonTerminal.struct_declarator_list,
+        ETokenType.SEMICOLON,
+      ],
     ],
-    [
-      ENonTerminal.type_qualifier,
-      ENonTerminal.type_specifier,
-      ENonTerminal.struct_declarator_list,
-      ETokenType.SEMICOLON,
-    ],
-  ]),
+    ASTNode.StructDeclaration
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.struct_declarator_list,
     [
       [ENonTerminal.struct_declarator],
@@ -488,24 +504,30 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.COMMA,
         ENonTerminal.struct_declarator,
       ],
-    ]
+    ],
+    ASTNode.StructDeclaratorList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.struct_declarator, [
-    [ETokenType.ID],
-    [ETokenType.ID, ENonTerminal.array_specifier],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.struct_declarator,
+    [[ETokenType.ID], [ETokenType.ID, ENonTerminal.array_specifier]],
+    ASTNode.StructDeclarator
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.array_specifier, [
-    [ETokenType.LEFT_BRACKET, ETokenType.RIGHT_BRACKET],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.array_specifier,
     [
-      ETokenType.LEFT_BRACKET,
-      ENonTerminal.integer_constant_expression,
-      ETokenType.RIGHT_BRACKET,
+      [ETokenType.LEFT_BRACKET, ETokenType.RIGHT_BRACKET],
+      [
+        ETokenType.LEFT_BRACKET,
+        ENonTerminal.integer_constant_expression,
+        ETokenType.RIGHT_BRACKET,
+      ],
     ],
-  ]),
+    ASTNode.ArraySpecifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.integer_constant_expression_operator,
     [
       [ETokenType.PLUS],
@@ -513,13 +535,14 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.STAR],
       [ETokenType.SLASH],
       [ETokenType.PERCENT],
-    ]
+    ],
+    ASTNode.IntegerConstantExpressionOperator
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.integer_constant_expression,
     [
-      [ETokenType.ID],
+      [ENonTerminal.variable_identifier],
       [ETokenType.INT_CONSTANT],
       [
         ENonTerminal.integer_constant_expression,
@@ -529,12 +552,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [
         ENonTerminal.integer_constant_expression,
         ENonTerminal.integer_constant_expression_operator,
-        ETokenType.ID,
+        ENonTerminal.variable_identifier,
       ],
-    ]
+    ],
+    ASTNode.IntegerConstantExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.conditional_expression,
     [
       [ENonTerminal.logical_or_expression],
@@ -545,10 +569,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.COLON,
         ENonTerminal.assignment_expression,
       ],
-    ]
+    ],
+    ASTNode.ConditionalExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.logical_or_expression,
     [
       [ENonTerminal.logical_xor_expression],
@@ -557,10 +582,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.OR_OP,
         ENonTerminal.logical_xor_expression,
       ],
-    ]
+    ],
+    ASTNode.LogicalOrExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.logical_xor_expression,
     [
       [ENonTerminal.logical_and_expression],
@@ -569,10 +595,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.XOR_OP,
         ENonTerminal.logical_and_expression,
       ],
-    ]
+    ],
+    ASTNode.LogicalXorExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.logical_and_expression,
     [
       [ENonTerminal.inclusive_or_expression],
@@ -581,10 +608,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.AND_OP,
         ENonTerminal.inclusive_or_expression,
       ],
-    ]
+    ],
+    ASTNode.LogicalAndExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.inclusive_or_expression,
     [
       [ENonTerminal.exclusive_or_expression],
@@ -593,10 +621,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.VERTICAL_BAR,
         ENonTerminal.exclusive_or_expression,
       ],
-    ]
+    ],
+    ASTNode.InclusiveOrExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.exclusive_or_expression,
     [
       [ENonTerminal.and_expression],
@@ -605,19 +634,24 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.CARET,
         ENonTerminal.and_expression,
       ],
-    ]
+    ],
+    ASTNode.ExclusiveOrExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.and_expression, [
-    [ENonTerminal.equality_expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.and_expression,
     [
-      ENonTerminal.and_expression,
-      ETokenType.AMPERSAND,
-      ENonTerminal.equality_expression,
+      [ENonTerminal.equality_expression],
+      [
+        ENonTerminal.and_expression,
+        ETokenType.AMPERSAND,
+        ENonTerminal.equality_expression,
+      ],
     ],
-  ]),
+    ASTNode.AndExpression
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.equality_expression,
     [
       [ENonTerminal.relational_expression],
@@ -631,10 +665,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.NE_OP,
         ENonTerminal.relational_expression,
       ],
-    ]
+    ],
+    ASTNode.EqualityExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.relational_expression,
     [
       [ENonTerminal.shift_expression],
@@ -658,24 +693,29 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.GE_OP,
         ENonTerminal.shift_expression,
       ],
-    ]
+    ],
+    ASTNode.RelationalExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.shift_expression, [
-    [ENonTerminal.additive_expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.shift_expression,
     [
-      ENonTerminal.shift_expression,
-      ETokenType.LEFT_OP,
-      ENonTerminal.additive_expression,
+      [ENonTerminal.additive_expression],
+      [
+        ENonTerminal.shift_expression,
+        ETokenType.LEFT_OP,
+        ENonTerminal.additive_expression,
+      ],
+      [
+        ENonTerminal.shift_expression,
+        ETokenType.RIGHT_OP,
+        ENonTerminal.additive_expression,
+      ],
     ],
-    [
-      ENonTerminal.shift_expression,
-      ETokenType.RIGHT_OP,
-      ENonTerminal.additive_expression,
-    ],
-  ]),
+    ASTNode.ShiftExpression
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.additive_expression,
     [
       [ENonTerminal.multiplicative_expression],
@@ -689,10 +729,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.DASH,
         ENonTerminal.multiplicative_expression,
       ],
-    ]
+    ],
+    ASTNode.AdditiveExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.multiplicative_expression,
     [
       [ENonTerminal.unary_expression],
@@ -711,61 +752,82 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.PERCENT,
         ENonTerminal.unary_expression,
       ],
-    ]
+    ],
+    ASTNode.MultiplicativeExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.unary_expression, [
-    [ENonTerminal.postfix_expression],
-    [ETokenType.INC_OP, ENonTerminal.unary_expression],
-    [ETokenType.DEC_OP, ENonTerminal.unary_expression],
-    [ENonTerminal.unary_operator, ENonTerminal.unary_expression],
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.unary_operator, [
-    [ETokenType.PLUS],
-    [ETokenType.DASH],
-    [ETokenType.BANG],
-    [ETokenType.TILDE],
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.postfix_expression, [
-    [ENonTerminal.primary_expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.unary_expression,
     [
-      ENonTerminal.postfix_expression,
-      ETokenType.LEFT_BRACKET,
-      ENonTerminal.expression,
-      ETokenType.RIGHT_BRACKET,
+      [ENonTerminal.postfix_expression],
+      [ETokenType.INC_OP, ENonTerminal.unary_expression],
+      [ETokenType.DEC_OP, ENonTerminal.unary_expression],
+      [ENonTerminal.unary_operator, ENonTerminal.unary_expression],
     ],
-    [ENonTerminal.function_call],
-    [ENonTerminal.postfix_expression, ETokenType.DOT, ETokenType.ID],
+    ASTNode.UnaryExpression
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.unary_operator,
     [
-      ENonTerminal.postfix_expression,
-      ETokenType.DOT,
-      ENonTerminal.function_call,
+      [ETokenType.PLUS],
+      [ETokenType.DASH],
+      [ETokenType.BANG],
+      [ETokenType.TILDE],
     ],
-    [ENonTerminal.postfix_expression, ETokenType.INC_OP],
-    [ENonTerminal.postfix_expression, ETokenType.DEC_OP],
-  ]),
+    ASTNode.UnaryOperator
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.primary_expression, [
-    [ETokenType.ID],
-    [ETokenType.INT_CONSTANT],
-    [ETokenType.FLOAT_CONSTANT],
-    [EKeyword.TRUE],
-    [EKeyword.FALSE],
-    [ETokenType.LEFT_PAREN, ENonTerminal.expression, ETokenType.RIGHT_PAREN],
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.expression, [
-    [ENonTerminal.assignment_expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.postfix_expression,
     [
-      ENonTerminal.expression,
-      ETokenType.COMMA,
-      ENonTerminal.assignment_expression,
+      [ENonTerminal.primary_expression],
+      [
+        ENonTerminal.postfix_expression,
+        ETokenType.LEFT_BRACKET,
+        ENonTerminal.expression,
+        ETokenType.RIGHT_BRACKET,
+      ],
+      [ENonTerminal.function_call],
+      [ENonTerminal.postfix_expression, ETokenType.DOT, ETokenType.ID],
+      [
+        ENonTerminal.postfix_expression,
+        ETokenType.DOT,
+        ENonTerminal.function_call,
+      ],
+      [ENonTerminal.postfix_expression, ETokenType.INC_OP],
+      [ENonTerminal.postfix_expression, ETokenType.DEC_OP],
     ],
-  ]),
+    ASTNode.PostfixExpression
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.primary_expression,
+    [
+      [ENonTerminal.variable_identifier],
+      [ETokenType.INT_CONSTANT],
+      [ETokenType.FLOAT_CONSTANT],
+      [EKeyword.TRUE],
+      [EKeyword.FALSE],
+      [ETokenType.LEFT_PAREN, ENonTerminal.expression, ETokenType.RIGHT_PAREN],
+    ],
+    ASTNode.PrimaryExpression
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.expression,
+    [
+      [ENonTerminal.assignment_expression],
+      [
+        ENonTerminal.expression,
+        ETokenType.COMMA,
+        ENonTerminal.assignment_expression,
+      ],
+    ],
+    ASTNode.Expression
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.assignment_expression,
     [
       [ENonTerminal.conditional_expression],
@@ -774,10 +836,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.assignment_operator,
         ENonTerminal.assignment_expression,
       ],
-    ]
+    ],
+    ASTNode.AssignmentExpression
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.assignment_operator,
     [
       [ETokenType.EQUAL],
@@ -791,12 +854,17 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.AND_ASSIGN],
       [ETokenType.XOR_ASSIGN],
       [ETokenType.OR_ASSIGN],
-    ]
+    ],
+    ASTNode.AssignmentOperator
   ),
 
-  [[ENonTerminal.function_call, ENonTerminal.function_call_generic], undefined],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.function_call,
+    [[ENonTerminal.function_call_generic]],
+    ASTNode.FunctionCall
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_call_generic,
     [
       [
@@ -811,10 +879,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.RIGHT_PAREN,
       ],
       [ENonTerminal.function_identifier, EKeyword.VOID, ETokenType.RIGHT_PAREN],
-    ]
+    ],
+    ASTNode.FunctionCallGeneric
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_call_parameter_list,
     [
       [ENonTerminal.assignment_expression],
@@ -823,36 +892,44 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.COMMA,
         ENonTerminal.assignment_expression,
       ],
-    ]
+    ],
+    ASTNode.FunctionCallParameterList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_identifier,
-    [[ENonTerminal.type_specifier]]
+    [[ENonTerminal.type_specifier]],
+    ASTNode.FunctionIdentifier
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_definition,
-    [[ENonTerminal.function_prototype, ENonTerminal.compound_statement]]
+    [[ENonTerminal.function_prototype, ENonTerminal.compound_statement]],
+    ASTNode.FunctionDefinition
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.function_prototype, [
-    [ENonTerminal.function_declarator, ETokenType.RIGHT_PAREN],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.function_prototype,
+    [[ENonTerminal.function_declarator, ETokenType.RIGHT_PAREN]],
+    ASTNode.FunctionProtoType
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_declarator,
     [
       [ENonTerminal.function_header],
       [ENonTerminal.function_header, ENonTerminal.function_parameter_list],
-    ]
+    ],
+    ASTNode.FunctionDeclarator
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.function_header, [
-    [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.function_header,
+    [[ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN]],
+    ASTNode.FunctionHeader
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_parameter_list,
     [
       [ENonTerminal.parameter_declaration],
@@ -861,18 +938,20 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.COMMA,
         ENonTerminal.parameter_declaration,
       ],
-    ]
+    ],
+    ASTNode.FunctionParameterList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.parameter_declaration,
     [
       [ENonTerminal.type_qualifier, ENonTerminal.parameter_declarator],
       [ENonTerminal.parameter_declarator],
-    ]
+    ],
+    ASTNode.ParameterDeclaration
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.parameter_declarator,
     [
       [ENonTerminal.type_specifier, ETokenType.ID],
@@ -881,60 +960,82 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.ID,
         ENonTerminal.array_specifier,
       ],
-    ]
+    ],
+    ASTNode.ParameterDeclarator
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.statement_list, [
-    [ENonTerminal.statement],
-    [ENonTerminal.statement_list, ENonTerminal.statement],
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.statement, [
-    [ENonTerminal.compound_statement],
-    [ENonTerminal.simple_statement],
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.compound_statement, [
-    [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.statement_list,
     [
-      ENonTerminal.scope_brace,
-      ENonTerminal.statement_list,
-      ENonTerminal.scope_end_brace,
+      [ENonTerminal.statement],
+      [ENonTerminal.statement_list, ENonTerminal.statement],
     ],
-  ]),
+    ASTNode.StatementList
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.simple_statement, [
-    [ENonTerminal.declaration],
-    [ENonTerminal.expression_statement],
-    [ENonTerminal.selection_statement],
-    [ENonTerminal.iteration_statement],
-    [ENonTerminal.jump_statement],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.statement,
+    [[ENonTerminal.compound_statement], [ENonTerminal.simple_statement]],
+    ASTNode.Statement
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.declaration, [
-    [ENonTerminal.function_prototype, ETokenType.SEMICOLON],
-    [ENonTerminal.init_declarator_list, ETokenType.SEMICOLON],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.compound_statement,
     [
-      EKeyword.PRECISION,
-      ENonTerminal.precision_qualifier,
-      ENonTerminal.ext_builtin_type_specifier_nonarray,
-      ETokenType.SEMICOLON,
+      [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
+      [
+        ENonTerminal.scope_brace,
+        ENonTerminal.statement_list,
+        ENonTerminal.scope_end_brace,
+      ],
     ],
-    [ENonTerminal.type_qualifier, ETokenType.ID, ETokenType.SEMICOLON],
+    ASTNode.CompoundStatement
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.simple_statement,
     [
-      ENonTerminal.type_qualifier,
-      ETokenType.ID,
-      ENonTerminal.identifier_list,
-      ETokenType.SEMICOLON,
+      [ENonTerminal.declaration],
+      [ENonTerminal.expression_statement],
+      [ENonTerminal.selection_statement],
+      [ENonTerminal.iteration_statement],
+      [ENonTerminal.jump_statement],
     ],
-  ]),
+    ASTNode.SimpleStatement
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.identifier_list, [
-    [ETokenType.COMMA, ETokenType.ID],
-    [ENonTerminal.identifier_list, ETokenType.COMMA, ETokenType.ID],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.declaration,
+    [
+      [ENonTerminal.function_prototype, ETokenType.SEMICOLON],
+      [ENonTerminal.init_declarator_list, ETokenType.SEMICOLON],
+      [
+        EKeyword.PRECISION,
+        ENonTerminal.precision_qualifier,
+        ENonTerminal.ext_builtin_type_specifier_nonarray,
+        ETokenType.SEMICOLON,
+      ],
+      [ENonTerminal.type_qualifier, ETokenType.ID, ETokenType.SEMICOLON],
+      [
+        ENonTerminal.type_qualifier,
+        ETokenType.ID,
+        ENonTerminal.identifier_list,
+        ETokenType.SEMICOLON,
+      ],
+    ],
+    ASTNode.Declaration
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.identifier_list,
+    [
+      [ETokenType.COMMA, ETokenType.ID],
+      [ENonTerminal.identifier_list, ETokenType.COMMA, ETokenType.ID],
+    ],
+    ASTNode.IdentifierList
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.init_declarator_list,
     [
       [ENonTerminal.single_declaration],
@@ -960,10 +1061,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.EQUAL,
         ENonTerminal.initializer,
       ],
-    ]
+    ],
+    ASTNode.InitDeclaratorList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.single_declaration,
     [
       [ENonTerminal.fully_specified_type, ETokenType.ID],
@@ -986,30 +1088,43 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.initializer,
       ],
     ],
-    []
+    ASTNode.SingleDeclaration
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.initializer, [
-    [ENonTerminal.assignment_expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.initializer,
     [
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.initializer_list,
-      ETokenType.RIGHT_BRACE,
+      [ENonTerminal.assignment_expression],
+      [
+        ETokenType.LEFT_BRACE,
+        ENonTerminal.initializer_list,
+        ETokenType.RIGHT_BRACE,
+      ],
     ],
-  ]),
+    ASTNode.Initializer
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.initializer_list, [
-    [ENonTerminal.initializer],
-    [ENonTerminal.initializer_list, ETokenType.COMMA, ENonTerminal.initializer],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.initializer_list,
+    [
+      [ENonTerminal.initializer],
+      [
+        ENonTerminal.initializer_list,
+        ETokenType.COMMA,
+        ENonTerminal.initializer,
+      ],
+    ],
+    ASTNode.InitializerList
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.expression_statement,
-    [[ETokenType.SEMICOLON], [ENonTerminal.expression, ETokenType.SEMICOLON]]
+    [[ETokenType.SEMICOLON], [ENonTerminal.expression, ETokenType.SEMICOLON]],
+    ASTNode.ExpressionStatement
   ),
 
   // dangling else ambiguity
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.selection_statement,
     [
       [
@@ -1028,10 +1143,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         EKeyword.ELSE,
         ENonTerminal.statement,
       ],
-    ]
+    ],
+    ASTNode.SelectionStatement
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.iteration_statement,
     [
       [
@@ -1049,95 +1165,103 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.RIGHT_PAREN,
         ENonTerminal.statement,
       ],
-    ]
+    ],
+    ASTNode.IterationStatement
   ),
 
-  [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.precision_specifier,
     [
-      ENonTerminal.precision_specifier,
-      EKeyword.PRECISION,
-      ENonTerminal.precision_qualifier,
-      ENonTerminal.ext_builtin_type_specifier_nonarray,
-      ETokenType.SEMICOLON,
+      [
+        EKeyword.PRECISION,
+        ENonTerminal.precision_qualifier,
+        ENonTerminal.ext_builtin_type_specifier_nonarray,
+        ETokenType.SEMICOLON,
+      ],
     ],
-    undefined,
-  ],
+    ASTNode.PrecisionSpecifier
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.for_init_statement, [
-    [ENonTerminal.expression_statement],
-    [ENonTerminal.declaration],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.for_init_statement,
+    [[ENonTerminal.expression_statement], [ENonTerminal.declaration]],
+    ASTNode.ForInitStatement
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.condition, [
-    [ENonTerminal.expression],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.condition,
     [
-      ENonTerminal.fully_specified_type,
-      ETokenType.ID,
-      ETokenType.EQUAL,
-      ENonTerminal.initializer,
+      [ENonTerminal.expression],
+      [
+        ENonTerminal.fully_specified_type,
+        ETokenType.ID,
+        ETokenType.EQUAL,
+        ENonTerminal.initializer,
+      ],
     ],
-  ]),
+    ASTNode.Condition
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.for_rest_statement, [
-    [ENonTerminal.conditionopt, ETokenType.SEMICOLON],
-    [ENonTerminal.conditionopt, ETokenType.SEMICOLON, ENonTerminal.expression],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.for_rest_statement,
+    [
+      [ENonTerminal.conditionopt, ETokenType.SEMICOLON],
+      [
+        ENonTerminal.conditionopt,
+        ETokenType.SEMICOLON,
+        ENonTerminal.expression,
+      ],
+    ],
+    ASTNode.ForRestStatement
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.conditionopt, [
-    [ETokenType.EPSILON],
-    [ENonTerminal.condition],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.conditionopt,
+    [[ETokenType.EPSILON], [ENonTerminal.condition]],
+    ASTNode.ConditionOpt
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.jump_statement, [
-    [EKeyword.CONTINUE, ETokenType.SEMICOLON],
-    [EKeyword.BREAK, ETokenType.SEMICOLON],
-    [EKeyword.RETURN, ETokenType.SEMICOLON],
-    [EKeyword.RETURN, ENonTerminal.expression, ETokenType.SEMICOLON],
-    [EKeyword.DISCARD, ETokenType.SEMICOLON],
-  ]),
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.jump_statement,
+    [
+      [EKeyword.CONTINUE, ETokenType.SEMICOLON],
+      [EKeyword.BREAK, ETokenType.SEMICOLON],
+      [EKeyword.RETURN, ETokenType.SEMICOLON],
+      [EKeyword.RETURN, ENonTerminal.expression, ETokenType.SEMICOLON],
+      [EKeyword.DISCARD, ETokenType.SEMICOLON],
+    ],
+    ASTNode.JumpStatement
+  ),
 
-  [
-    [ENonTerminal.scope_brace, ETokenType.LEFT_BRACE],
-    (sa, leftBrace) => {
-      const loc = new LocRange(
-        (<Token>leftBrace).position,
-        (<Token>leftBrace).position.offset(1)
-      );
-      ASTNode.create(ASTNode.ScopeBrace, sa, loc, [leftBrace]);
-    },
-  ],
-  [
-    [ENonTerminal.scope_end_brace, ETokenType.RIGHT_BRACE],
-    (sa, rightBrace) => {
-      const loc = new LocRange(
-        (<Token>rightBrace).position,
-        (<Token>rightBrace).position.offset(1)
-      );
-      ASTNode.create(ASTNode.ScopeEndBrace, sa, loc, [rightBrace]);
-    },
-  ],
-  [
-    [ENonTerminal.shader_scope_brace, ENonTerminal.scope_brace],
-    (sa, leftBrace) => {
-      ASTNode.create(
-        ASTNode.ShaderScopeBrace,
-        sa,
-        (<TreeNode>leftBrace).location,
-        [leftBrace]
-      );
-    },
-  ],
-  [
-    [ENonTerminal.shader_scope_end_brace, ENonTerminal.scope_end_brace],
-    (sa, rightBrace) => {
-      ASTNode.create(
-        ASTNode.ShaderScopeEndBrace,
-        sa,
-        (<TreeNode>rightBrace).location,
-        [rightBrace]
-      );
-    },
-  ],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.scope_brace,
+    [[ETokenType.LEFT_BRACE]],
+    ASTNode.ScopeBrace
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.scope_end_brace,
+    [[ETokenType.RIGHT_BRACE]],
+    ASTNode.ScopeEndBrace
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.shader_scope_brace,
+    [[ENonTerminal.scope_brace]],
+    ASTNode.ShaderScopeBrace
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.shader_scope_end_brace,
+    [[ENonTerminal.scope_end_brace]],
+    ASTNode.ShaderScopeEndBrace
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.variable_identifier,
+    [[ETokenType.ID]],
+    ASTNode.VariableIdentifier
+  ),
 ];
 
 const createGrammar = () =>

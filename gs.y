@@ -3,6 +3,7 @@
 %token pass
 %token id
 %token render_queue_type
+%token blend_factor
 %token blend_state
 %token depth_state
 %token stencil_state
@@ -209,18 +210,23 @@ gl_mian_shader_entry:
     ;
 
 gl_main_shader_assignment:
-    gl_mian_shader_entry '=' id ';'
+    gl_mian_shader_entry '=' variable_identifier ';'
     ;
 
 gl_render_queue_assignment:
-    render_queue_type '=' id ';'
+    render_queue_type '=' variable_identifier ';'
     | render_queue_type '=' render_queue_type '.' id ';'
     ;
 
-// TODO: 确认
+// 语义分析检查id类型，比如BlendFactor/RenderQueueType
 gl_variable_declaration:
     fully_specified_type id ';'
     | render_queue_type id;
+    ;
+
+// 语义分析声明检查
+variable_identifier:
+    id
     ;
 
 precision_specifier:
@@ -322,10 +328,10 @@ integer_constant_expression_operator:
     ;
 
 integer_constant_expression:
-    id
+    variable_identifier
     | INT_CONSTANT
     | integer_constant_expression integer_constant_expression_operator INT_CONSTANT
-    | integer_constant_expression integer_constant_expression_operator id
+    | integer_constant_expression integer_constant_expression_operator variable_identifier
     ;
 
 conditional_expression:
@@ -420,7 +426,7 @@ postfix_expression:
     ;
 
 primary_expression:
-    id
+    variable_identifier
     | INT_CONSTANT
     | FLOAT_CONSTANT
     | true
