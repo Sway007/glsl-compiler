@@ -1,3 +1,5 @@
+import { EKeyword, ETokenType, TokenType } from './TokenType';
+
 export default class LexerUtils {
   static isNum(char: string) {
     return /\d/.test(char);
@@ -13,5 +15,9 @@ export default class LexerUtils {
 
   static isNumOrLetter(char: string) {
     return /(\d|\w)/.test(char);
+  }
+
+  static isKeyword(tt: TokenType) {
+    return tt < ETokenType.ID;
   }
 }

@@ -8,14 +8,16 @@ import {
   StateActionTable,
   StateGotoTable,
 } from '../ParserGenerator/common';
+import { TreeNode } from './AST';
 import SematicAnalyzer from './SemanticAnalyzer';
+import { TraceStackItem } from './types';
 
 export default class Parser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;
   readonly sematicAnalyzer: SematicAnalyzer;
-  private traceBackStack: (Token | ENonTerminal | number)[] = [];
+  private traceBackStack: (TraceStackItem | number)[] = [];
 
   private get curState() {
     return this.traceBackStack[this.traceBackStack.length - 1] as number;
@@ -47,13 +49,7 @@ export default class Parser {
     let loopCount = 0;
     while (true) {
       loopCount += 1;
-
       const token = nextToken.value;
-      if (token.type === ETokenType.LEFT_BRACE) {
-        sematicAnalyzer.newScope();
-      } else if (token.type === ETokenType.RIGHT_BRACE) {
-        sematicAnalyzer.dropScope();
-      }
 
       const actionInfo = this.stateActionTable.get(token.type);
       if (actionInfo?.action === EAction.Shift) {
@@ -76,12 +72,19 @@ export default class Parser {
           reduceProduction.id
         );
 
-        const values: (Token | ENonTerminal)[] = [];
+        const values: (TreeNode | Token)[] = [];
 
         for (let i = reduceProduction.derivation.length - 1; i >= 0; i--) {
           if (reduceProduction.derivation[i] === ETokenType.EPSILON) continue;
           traceBackStack.pop();
-          values.unshift(<Token>traceBackStack.pop());
+          const token = traceBackStack.pop();
+          if (token instanceof Token) {
+            values.unshift(token);
+          } else {
+            const astNode = sematicAnalyzer.semanticStack.pop()!;
+            if (astNode == undefined && translationRule) debugger;
+            values.unshift(astNode);
+          }
         }
         debug && this.printStack(token);
         translationRule?.(sematicAnalyzer, ...values);

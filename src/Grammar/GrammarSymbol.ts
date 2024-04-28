@@ -28,6 +28,7 @@ export enum ENonTerminal {
   gl_render_state_declaration,
   gl_render_state_prop_list,
   gl_render_state_prop,
+  gl_render_state_prop_assignment,
   gl_main_shader_entry,
   gl_main_shader_assignment,
   gl_render_queue_assignment,
@@ -130,7 +131,8 @@ export enum ENonTerminal {
   typename_identifier_node,
   scope_brace,
   scope_end_brace,
-  shader_scope_brace,
+  subshader_scope_brace,
+  pass_scope_brace,
   shader_scope_end_brace,
 
   // TEST:

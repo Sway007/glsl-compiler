@@ -1,7 +1,9 @@
 import { EKeyword, ETokenType } from '../Lexer/TokenType';
+import { ASTNode } from '../Parser/AST';
 import { TranslationRule } from '../Parser/SemanticAnalyzer';
+import { ASTNodeConstructor } from '../Parser/types';
+import { LocRange } from '../common/Position';
 import { ENonTerminal, GrammarSymbol } from './GrammarSymbol';
-import Production from './Production';
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -12,17 +14,40 @@ export default class GrammarUtils {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? EKeyword[sm];
     }
+    if (ENonTerminal[sm] === 'constant_expression') debugger;
     return ENonTerminal[sm];
+  }
+
+  static createProductionWithOptionsV2(
+    goal: ENonTerminal,
+    options: GrammarSymbol[][],
+    /** the ast node */
+    astType: ASTNodeConstructor
+  ) {
+    const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
+    for (const opt of options) {
+      ret.push([
+        [goal, ...opt],
+        (sa, ...children) => {
+          if (!children[0]) debugger;
+          const start = children[0].location.start;
+          const end = children[children.length - 1].location.end;
+          const location = new LocRange(start, end);
+          ASTNode.create(astType, sa, location, children);
+        },
+      ]);
+    }
+    return ret;
   }
 
   static createProductionWithOptions(
     goal: ENonTerminal,
     options: GrammarSymbol[][],
-    rule: TranslationRule | null = null
+    rule: TranslationRule[] | TranslationRule | undefined = undefined
   ) {
-    const ret: [GrammarSymbol[], TranslationRule | null][] = [];
-    for (const opt of options) {
-      ret.push([[goal, ...opt], rule]);
+    const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
+    for (let i = 0; i < options.length; i++) {
+      ret.push([[goal, ...options[i]], Array.isArray(rule) ? rule[i] : rule]);
     }
     return ret;
   }

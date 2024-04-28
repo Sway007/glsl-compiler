@@ -1,4 +1,4 @@
-import Position from '../common/Position';
+import Position, { LocRange } from '../common/Position';
 import { EKeyword, ETokenType, TokenType } from './TokenType';
 
 export default class Token {
@@ -9,6 +9,10 @@ export default class Token {
   /** The length of lexeme */
   get length() {
     return this.lexeme.length;
+  }
+
+  get location(): LocRange {
+    return new LocRange(this.position, this.position.offset(this.length));
   }
 
   constructor(type: TokenType, lexeme: string, position: Position) {

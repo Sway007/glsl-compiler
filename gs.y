@@ -114,7 +114,7 @@ gl_shader_global_declaration_list:
 
 
 gl_subshader_program:
-    subshader string_const shader_scope_brace gl_subshader_global_declaration_list shader_scope_end_brace
+    subshader string_const subshader_scope_brace gl_subshader_global_declaration_list shader_scope_end_brace
     ;
 
 gl_subshader_global_declaration_list:
@@ -154,7 +154,7 @@ gl_tag_value:
     ;
 
 gl_pass_program:
-    pass string_const shader_scope_brace gl_pass_global_declaration_list shader_scope_end_brace
+    pass string_const pass_scope_brace gl_pass_global_declaration_list shader_scope_end_brace
     ;
 
 gl_pass_global_declaration_list:
@@ -171,7 +171,7 @@ gl_pass_global_declaration:
     ;
 
 gl_use_pass_declaration:
-    UsePass string_const ';'
+    UsePass string_const
     ;
 
 gl_render_state_declarator:
@@ -191,17 +191,22 @@ gl_render_state_declaration:
     ;
 
 gl_render_state_prop_list:
-    /** empty */
-    | gl_render_state_prop gl_render_state_prop_list
+    gl_render_state_prop_assignment
+    | gl_render_state_prop_assignment gl_render_state_prop_list
     ;
 
 // 语义分析检测key值
+gl_render_state_prop_assignment:
+    gl_render_state_prop '=' id ';'
+    gl_render_state_prop '=' true ';'
+    gl_render_state_prop '=' false ';'
+    gl_render_state_prop '=' INT_CONSTANT ';'
+    gl_render_state_prop '=' FLOAT_CONSTANT ';'
+    ;
+
 gl_render_state_prop:
-    id '=' id ';'
-    id '=' true ';'
-    id '=' false ';'
-    id '=' INT_CONSTANT ';'
-    id '=' FLOAT_CONSTANT ';'
+    id '[' INT_CONSTANT ']'
+    | id
     ;
 
 gl_mian_shader_entry:
@@ -210,12 +215,11 @@ gl_mian_shader_entry:
     ;
 
 gl_main_shader_assignment:
-    gl_mian_shader_entry '=' variable_identifier ';'
+    gl_mian_shader_entry '=' id ';'
     ;
 
 gl_render_queue_assignment:
-    render_queue_type '=' variable_identifier ';'
-    | render_queue_type '=' render_queue_type '.' id ';'
+    render_queue_type '=' id ';'
     ;
 
 // 语义分析检查id类型，比如BlendFactor/RenderQueueType
@@ -625,7 +629,11 @@ jump_statement:
     | DISCARD ';'
     ;
 
-shader_scope_brace:
+subshader_scope_brace:
+    scope_brace
+    ;
+
+pass_scope_brace:
     scope_brace
     ;
 
