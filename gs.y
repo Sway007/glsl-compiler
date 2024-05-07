@@ -12,10 +12,16 @@
 %token EditorMacros
 %token tags
 %token ReplacementTag
+%token LightMode
 %token INT_CONSTANT
 %token FLOAT_CONSTANT
 %token true
 %token false
+
+%token Vector2
+%token Vector3
+%token Vector4
+%token Color
 
 %token UsePass
 %token VertexShader
@@ -108,13 +114,13 @@ gl_shader_global_declaration:
     ;
 
 gl_shader_global_declaration_list:
-    /** empty */
+    gl_shader_global_declaration
     | gl_shader_global_declaration_list gl_shader_global_declaration
     ;
 
 
 gl_subshader_program:
-    subshader string_const subshader_scope_brace gl_subshader_global_declaration_list shader_scope_end_brace
+    subshader string_const subshader_scope_brace gl_subshader_global_declaration_list scope_end_brace
     ;
 
 gl_subshader_global_declaration_list:
@@ -135,7 +141,7 @@ gl_tag_specifier:
 gl_tag_assignment_list:
     /** empty */
     | gl_tag_assignment
-    | gl_tag_assignment_list ';' gl_tag_assignment
+    | gl_tag_assignment_list ',' gl_tag_assignment
     ;
 
 gl_tag_assignment:
@@ -145,16 +151,19 @@ gl_tag_assignment:
 gl_tag_id:
     /** 待补充 */
     ReplacementTag
+    | LightMode
     ;
 
 // TODO: 需确认
 gl_tag_value:
     string_const
     | INT_CONSTANT
+    | true
+    | false
     ;
 
 gl_pass_program:
-    pass string_const pass_scope_brace gl_pass_global_declaration_list shader_scope_end_brace
+    pass string_const pass_scope_brace gl_pass_global_declaration_list scope_end_brace
     ;
 
 gl_pass_global_declaration_list:
@@ -202,6 +211,27 @@ gl_render_state_prop_assignment:
     gl_render_state_prop '=' false ';'
     gl_render_state_prop '=' INT_CONSTANT ';'
     gl_render_state_prop '=' FLOAT_CONSTANT ';'
+    gl_render_state_prop '=' id '.' id ';'
+    gl_render_state_prop '=' gl_engine_type_init ';'
+    ;
+
+// TODO: 补充
+gl_engine_type:
+    Vector2
+    | Vector3
+    | Vector4
+    | Color
+    ;
+
+gl_engine_type_init:
+    gl_engine_type '(' gl_engine_type_init_param_list ')'
+    ;
+
+gl_engine_type_init_param_list:
+    INT_CONSTANT
+    | FLOAT_CONSTANT
+    | gl_engine_type_init_param_list ',' INT_CONSTANT
+    | gl_engine_type_init_param_list ',' FLOAT_CONSTANT
     ;
 
 gl_render_state_prop:
@@ -253,8 +283,8 @@ type_specifier_nonarray:
 
 // TODO: current
 struct_specifier:
-    struct id '{' struct_declaration_list '}'
-    | struct '{' struct_declaration_list '}'
+    struct id '{' struct_declaration_list '}' ;
+    | struct '{' struct_declaration_list '}' ;
     ;
 
 struct_declaration_list:
@@ -481,7 +511,7 @@ function_identifier:
     ;
 
 function_definition:
-    function_prototype compound_statement
+    function_prototype compound_statement_no_scope
     ;
 
 function_prototype:
@@ -526,6 +556,10 @@ statement:
     compound_statement
     | simple_statement
     ;
+
+compound_statement_no_scope:
+    '{' '}'
+    | '{' statement_list '}'
 
 compound_statement:
     '{' '}'
@@ -635,10 +669,6 @@ subshader_scope_brace:
 
 pass_scope_brace:
     scope_brace
-    ;
-
-shader_scope_end_brace:
-    scope_end_brace
     ;
 
 scope_brace:

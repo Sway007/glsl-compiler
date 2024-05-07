@@ -16,37 +16,39 @@ import { join } from 'path';
 import { ASTNode, TreeNode } from '../../../src/Parser/AST';
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_shader_program, [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_shader_program,
     [
-      EKeyword.GL_Shader,
-      ETokenType.STRING_CONST,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.gl_shader_global_declaration_list,
-      ETokenType.RIGHT_BRACE,
+      [
+        EKeyword.GL_Shader,
+        ETokenType.STRING_CONST,
+        ETokenType.LEFT_BRACE,
+        ENonTerminal.gl_shader_global_declaration_list,
+        ETokenType.RIGHT_BRACE,
+      ],
     ],
-  ]),
+    ASTNode.GLShaderProgram
+  ),
 
   // TODO:
-  [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_editor_prop_declaration,
     [
-      ENonTerminal.gl_editor_prop_declaration,
-      EKeyword.GL_EditorProperties,
-      ETokenType.LEFT_BRACE,
-      // TODO:
-      ETokenType.RIGHT_BRACE,
+      [
+        EKeyword.GL_EditorProperties,
+        ETokenType.LEFT_BRACE,
+        // TODO:
+        ETokenType.RIGHT_BRACE,
+      ],
     ],
-    undefined,
-  ],
+    ASTNode.GLEditorPropDeclaration
+  ),
 
-  [
-    [
-      ENonTerminal.gl_editor_macro_declaration,
-      EKeyword.GL_EditorMacros,
-      ETokenType.LEFT_BRACE,
-      ETokenType.RIGHT_BRACE,
-    ],
-    undefined,
-  ],
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_editor_macro_declaration,
+    [[EKeyword.GL_EditorMacros, ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE]],
+    ASTNode.GLEditorMacroDeclaration
+  ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_common_global_declaration,
@@ -61,40 +63,44 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ASTNode.GLCommonGlobalDeclaration
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_shader_global_declaration,
     [
       [ENonTerminal.gl_common_global_declaration],
       [ENonTerminal.gl_editor_prop_declaration],
       [ENonTerminal.gl_editor_macro_declaration],
       [ENonTerminal.gl_subshader_program],
-    ]
+    ],
+    ASTNode.GLShaderGlobalDeclaration
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_shader_global_declaration_list,
     [
-      [ETokenType.EPSILON],
+      [ENonTerminal.gl_shader_global_declaration],
       [
         ENonTerminal.gl_shader_global_declaration_list,
         ENonTerminal.gl_shader_global_declaration,
       ],
-    ]
+    ],
+    ASTNode.GLShaderGlobalDeclarationList
   ),
 
-  [
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_subshader_program,
     [
-      ENonTerminal.gl_subshader_program,
-      EKeyword.GL_SubShader,
-      ETokenType.STRING_CONST,
-      ENonTerminal.subshader_scope_brace,
-      ENonTerminal.gl_subshader_global_declaration_list,
-      ENonTerminal.shader_scope_end_brace,
+      [
+        EKeyword.GL_SubShader,
+        ETokenType.STRING_CONST,
+        ENonTerminal.subshader_scope_brace,
+        ENonTerminal.gl_subshader_global_declaration_list,
+        ENonTerminal.scope_end_brace,
+      ],
     ],
-    undefined,
-  ],
+    ASTNode.GLSubShaderProgram
+  ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_subshader_global_declaration_list,
     [
       [ENonTerminal.gl_subshader_global_declaration],
@@ -102,17 +108,19 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.gl_subshader_global_declaration_list,
         ENonTerminal.gl_subshader_global_declaration,
       ],
-    ]
+    ],
+    ASTNode.GLSubShaderGlobalDeclarationList
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
+  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_subshader_global_declaration,
     [
       [ENonTerminal.gl_common_global_declaration],
       [ENonTerminal.gl_tag_specifier],
       [ENonTerminal.gl_pass_program],
       [ENonTerminal.gl_use_pass_declaration],
-    ]
+    ],
+    ASTNode.GLSubShaderGlobalDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
@@ -135,7 +143,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.gl_tag_assignment],
       [
         ENonTerminal.gl_tag_assignment_list,
-        ETokenType.SEMICOLON,
+        ETokenType.COMMA,
         ENonTerminal.gl_tag_assignment,
       ],
     ],
@@ -150,13 +158,18 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_tag_id,
-    [[EKeyword.GL_ReplacementTag]],
+    [[EKeyword.GL_ReplacementTag], [EKeyword.GL_LightMode]],
     ASTNode.GLTagId
   ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_tag_value,
-    [[ETokenType.STRING_CONST], [ETokenType.INT_CONSTANT]],
+    [
+      [ETokenType.STRING_CONST],
+      [ETokenType.INT_CONSTANT],
+      [EKeyword.TRUE],
+      [EKeyword.FALSE],
+    ],
     ASTNode.GLTagValue
   ),
 
@@ -168,7 +181,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.STRING_CONST,
         ENonTerminal.pass_scope_brace,
         ENonTerminal.gl_pass_global_declaration_list,
-        ENonTerminal.shader_scope_end_brace,
+        ENonTerminal.scope_end_brace,
       ],
     ],
     ASTNode.GLPassProgram
@@ -254,6 +267,14 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [
         ENonTerminal.gl_render_state_prop,
         ETokenType.EQUAL,
+        ETokenType.ID,
+        ETokenType.DOT,
+        ETokenType.ID,
+        ETokenType.SEMICOLON,
+      ],
+      [
+        ENonTerminal.gl_render_state_prop,
+        ETokenType.EQUAL,
         ETokenType.INT_CONSTANT,
         ETokenType.SEMICOLON,
       ],
@@ -263,8 +284,57 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.FLOAT_CONSTANT,
         ETokenType.SEMICOLON,
       ],
+      [
+        ENonTerminal.gl_render_state_prop,
+        ETokenType.EQUAL,
+        ENonTerminal.gl_engine_type_init,
+        ETokenType.SEMICOLON,
+      ],
     ],
     ASTNode.GLRenderStatePropAssignment
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_engine_type,
+    [
+      [EKeyword.GL_Vector2],
+      [EKeyword.GL_Vector3],
+      [EKeyword.GL_Vector4],
+      [EKeyword.GL_Color],
+    ],
+    ASTNode.GLEngineType
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_engine_type_init,
+    [
+      [
+        ENonTerminal.gl_engine_type,
+        ETokenType.LEFT_PAREN,
+        ENonTerminal.gl_engine_type_init_param_list,
+        ETokenType.RIGHT_PAREN,
+      ],
+    ],
+    ASTNode.GLEngineTypeInit
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.gl_engine_type_init_param_list,
+    [
+      [ETokenType.INT_CONSTANT],
+      [ETokenType.FLOAT_CONSTANT],
+      [
+        ENonTerminal.gl_engine_type_init_param_list,
+        ETokenType.COMMA,
+        ETokenType.INT_CONSTANT,
+      ],
+      [
+        ENonTerminal.gl_engine_type_init_param_list,
+        ETokenType.COMMA,
+        ETokenType.FLOAT_CONSTANT,
+      ],
+    ],
+    ASTNode.GLEngineTypeInitParamList
   ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
@@ -490,12 +560,14 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.LEFT_BRACE,
         ENonTerminal.struct_declaration_list,
         ETokenType.RIGHT_BRACE,
+        ETokenType.SEMICOLON,
       ],
       [
         EKeyword.STRUCT,
         ETokenType.LEFT_BRACE,
         ENonTerminal.struct_declaration_list,
         ETokenType.RIGHT_BRACE,
+        ETokenType.SEMICOLON,
       ],
     ],
     ASTNode.StructSpecifier
@@ -937,7 +1009,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.function_definition,
-    [[ENonTerminal.function_prototype, ENonTerminal.compound_statement]],
+    [
+      [
+        ENonTerminal.function_prototype,
+        ENonTerminal.compound_statement_no_scope,
+      ],
+    ],
     ASTNode.FunctionDefinition
   ),
 
@@ -1010,6 +1087,19 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ENonTerminal.statement,
     [[ENonTerminal.compound_statement], [ENonTerminal.simple_statement]],
     ASTNode.Statement
+  ),
+
+  ...GrammarUtils.createProductionWithOptionsV2(
+    ENonTerminal.compound_statement_no_scope,
+    [
+      [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
+      [
+        ETokenType.LEFT_BRACE,
+        ENonTerminal.statement_list,
+        ETokenType.RIGHT_BRACE,
+      ],
+    ],
+    ASTNode.CompoundStatementNoScope
   ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
@@ -1291,12 +1381,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptionsV2(
-    ENonTerminal.shader_scope_end_brace,
-    [[ENonTerminal.scope_end_brace]],
-    ASTNode.ShaderScopeEndBrace
-  ),
-
-  ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.variable_identifier,
     [[ETokenType.ID]],
     ASTNode.VariableIdentifier
@@ -1318,7 +1402,7 @@ const addTranslationRule = (sa: SematicAnalyzer) => {
   }
 };
 
-const source = readFileSync(join(__dirname, 'glsl/demo.gs')).toString();
+const source = readFileSync(join(__dirname, 'glsl/demo2.gs')).toString();
 
 const testCase: TestCase = {
   createGrammar,
