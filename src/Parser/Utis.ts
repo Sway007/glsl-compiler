@@ -5,13 +5,13 @@ import { TreeNode } from './AST';
 import { GalaceanDataType } from './types';
 
 export class ParserUtils {
-  static unwrapNodeByType(
+  static unwrapNodeByType<T = TreeNode>(
     node: TreeNode,
     type: ENonTerminal
-  ): TreeNode | undefined {
+  ): T | undefined {
     const child = node.children[0];
     if (child instanceof Token) return;
-    if (child.nt === type) return child;
+    if (child.nt === type) return child as T;
     return ParserUtils.unwrapNodeByType(child, type);
   }
 

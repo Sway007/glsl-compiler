@@ -10,14 +10,17 @@ export enum ESymbolType {
   STRUCT,
 }
 
-abstract class SymbolInfo {
+export abstract class SymbolInfo {
   readonly symType: ESymbolType;
   /** variable type */
   readonly symDataType?: SymbolType;
-  readonly astNode?: TreeNode;
+  readonly astNode?:
+    | ASTNode.Initializer
+    | ASTNode.GLRenderStateDeclaration
+    | ASTNode.StructSpecifier
+    | ASTNode.FunctionDefinition
+    | undefined;
   readonly lexeme: string;
-
-  referenced = false;
 
   constructor(
     lexeme: string,
@@ -33,6 +36,7 @@ abstract class SymbolInfo {
 }
 
 export class VarSymbol extends SymbolInfo {
+  readonly isGlobalVariable: boolean;
   declare astNode?:
     | ASTNode.Initializer
     | ASTNode.GLRenderStateDeclaration
@@ -41,16 +45,18 @@ export class VarSymbol extends SymbolInfo {
   constructor(
     lexeme: string,
     dataType: SymbolType,
+    isGlobalVariable: boolean,
     initAst?: ASTNode.Initializer
   ) {
     super(lexeme, ESymbolType.VAR, initAst, dataType);
+    this.isGlobalVariable = isGlobalVariable;
   }
 }
 
 export class FnSymbol extends SymbolInfo {
-  declare astNode: ASTNode.FunctionProtoType;
+  declare astNode: ASTNode.FunctionDefinition;
 
-  constructor(lexeme: string, astNode: ASTNode.FunctionProtoType) {
+  constructor(lexeme: string, astNode: ASTNode.FunctionDefinition) {
     super(lexeme, ESymbolType.FN, astNode);
   }
 }
@@ -116,14 +122,19 @@ export default class SymbolTable {
   ): SymbolTypeInfer<T> | null {
     const entry = this.table.get(lexeme);
     if (entry?.length) {
+      let found: SymbolInfo | undefined;
       if (type !== ESymbolType.FN || signature == undefined) {
-        const found = entry.find((item) => item.symType === type);
-        if (found) {
-          return found as any;
-        }
+        found = entry.find((item) => item.symType === type);
       } else {
-        // TODO: function signature equality check
-        throw 'not implemented';
+        found = entry.find(
+          (item) =>
+            item.symType === ESymbolType.FN &&
+            (<ASTNode.FunctionDefinition>item.astNode!).protoType.paramSig ===
+              signature
+        );
+      }
+      if (found) {
+        return found as any;
       }
     }
     if (this.parent) return this.parent.lookup(lexeme, type, signature);

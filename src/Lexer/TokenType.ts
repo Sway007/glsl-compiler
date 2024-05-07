@@ -182,9 +182,15 @@ export enum EKeyword {
   GL_EditorMacros,
   GL_Tags,
   GL_ReplacementTag,
+  GL_LightMode,
   GL_UsePass,
   GL_VertexShader,
   GL_FragmentShader,
+
+  GL_Vector2,
+  GL_Vector3,
+  GL_Vector4,
+  GL_Color,
 }
 
 export type TokenType = ETokenType | EKeyword;
@@ -274,7 +280,13 @@ export const KeywordTable = new Map<string, EKeyword>([
   ['EditorMacros', EKeyword.GL_EditorMacros],
   ['Tags', EKeyword.GL_Tags],
   ['ReplacementTag', EKeyword.GL_ReplacementTag],
+  ['LightMode', EKeyword.GL_LightMode],
   ['UsePass', EKeyword.GL_UsePass],
   ['VertexShader', EKeyword.GL_VertexShader],
   ['FragmentShader', EKeyword.GL_FragmentShader],
+
+  ['Vector2', EKeyword.GL_Vector2],
+  ['Vector3', EKeyword.GL_Vector3],
+  ['Vector4', EKeyword.GL_Vector4],
+  ['Color', EKeyword.GL_Color],
 ]);

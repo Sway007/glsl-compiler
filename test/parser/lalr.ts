@@ -1,7 +1,4 @@
-import { createWriteStream, readFileSync } from 'fs';
-import Grammar from '../../src/Grammar';
-import { ENonTerminal } from '../../src/Grammar/GrammarSymbol';
-import { EKeyword, ETokenType } from '../../src/Lexer/TokenType';
+import { mkdir, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import LREncoder from '../../src/ParserGenerator/Encoder';
 import LALR1 from '../../src/ParserGenerator/LALR1';
 import LRLoader from '../../src/Parser/Loader';
@@ -14,6 +11,8 @@ import Lexer from '../../src/Lexer';
 // import testCase from './cases/medium';
 // import testCase from './cases/glsl';
 import testCase from './cases/galacean';
+import { GLES100Visitor, GLES300Visitor } from '../../src/CodeGen';
+import { join } from 'path';
 
 async function main() {
   const grammar = testCase.createGrammar();
@@ -21,8 +20,8 @@ async function main() {
   const parser = new LALR1(grammar);
   parser.generate();
 
-  // await printFirstSet(parser.firstSetMap, '.local/firstSet.text');
-  // await printStatePool('.local/state.txt');
+  await printFirstSet(parser.firstSetMap, '.local/firstSet.text');
+  await printStatePool('.local/state.txt');
   if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
   LREncoder.encode('lalr1.bin', parser);
 
@@ -41,7 +40,28 @@ async function main() {
   const lexer = new Lexer(testCase.source);
   const tokens = lexer.tokenize();
   testCase.addTranslationRule(decodedParser.sematicAnalyzer);
-  decodedParser.parse(tokens);
+  // decodedParser.parse(tokens, true);
+  const ret = decodedParser.parse(tokens);
+  const codeGen = new GLES300Visitor();
+  const result = codeGen.visitShaderProgram(ret);
+  writeOutput(result);
+
+  console.log('done');
+}
+
+function writeOutput(shaderOutput: IShaderCodeGenResult) {
+  const outputDirRoot = join(__dirname, 'output', shaderOutput.name);
+  for (const subShader of shaderOutput.subShaderList) {
+    const outputDir = join(outputDirRoot, subShader.name);
+    for (const pass of subShader.passList) {
+      const output = join(outputDir, pass.name);
+      mkdirSync(output, { recursive: true });
+      const vertFile = join(output, `${pass.name}.vert`);
+      writeFileSync(vertFile, pass.vertexSource);
+      const fragFile = join(output, `${pass.name}.frag`);
+      writeFileSync(fragFile, pass.fragmentSource);
+    }
+  }
 }
 
 main();

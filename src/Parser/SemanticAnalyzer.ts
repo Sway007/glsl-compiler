@@ -59,6 +59,7 @@ export default class SematicAnalyzer {
       shaderData = new GLSubShaderData();
     }
     this._shaderDataStack.push(shaderData);
+    shaderData.symbolTable = this.scope;
   }
 
   dropShaderData() {

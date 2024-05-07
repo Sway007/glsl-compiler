@@ -29,7 +29,7 @@ export default class GrammarUtils {
       ret.push([
         [goal, ...opt],
         (sa, ...children) => {
-          if (!children[0]) debugger;
+          if (!children[0]) return;
           const start = children[0].location.start;
           const end = children[children.length - 1].location.end;
           const location = new LocRange(start, end);

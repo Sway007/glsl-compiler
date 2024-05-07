@@ -9,5 +9,6 @@ export class Logger {
   }
 
   static RED = 1;
+  static YELLOW = 11;
   static GREEN = 41;
 }

@@ -8,7 +8,7 @@ import {
   StateActionTable,
   StateGotoTable,
 } from '../ParserGenerator/common';
-import { TreeNode } from './AST';
+import { ASTNode, TreeNode } from './AST';
 import SematicAnalyzer from './SemanticAnalyzer';
 import { TraceStackItem } from './types';
 
@@ -63,7 +63,7 @@ export default class Parser {
           }ms`
         );
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
-        return;
+        return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
@@ -82,7 +82,6 @@ export default class Parser {
             values.unshift(token);
           } else {
             const astNode = sematicAnalyzer.semanticStack.pop()!;
-            if (astNode == undefined && translationRule) debugger;
             values.unshift(astNode);
           }
         }

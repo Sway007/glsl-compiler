@@ -17,9 +17,11 @@ Shader "Gem" {
     DestinationColorBlendFactor = material_DstBlend;
   }
 
-  float[5] foo() { }
+  float[5 * 10 - size] foo() { }
+  RenderQueueType material_QuqueType;
 
   void addSpotDirectLightRadiance(SpotLight spotLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
+    invariant color;
 
 		vec3 lVector = spotLight.position - geometry.position;
 		vec3 direction = normalize( lVector );
@@ -38,6 +40,32 @@ Shader "Gem" {
 	}
 
   SubShader "Default" {
+
+     RenderQueueType = material_QuqueType;
+
+     vec4 mod289( vec4 x ) {
+
+    return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0;
+
+}
+
+vec3 mod289( vec3 x ) {
+
+    return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0;
+
+}
+
+vec2 mod289( vec2 x ) {
+
+    return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0;
+
+}
+
+float mod289( float x ) {
+
+    return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0;
+
+}
 
     vec4 evaluateParticleGradient(in vec4 colorKeys[4], in float colorKeysMaxTime, in vec2 alphaKeys[4], in float alphaKeysMaxTime, in float normalizedAge){
         vec4 value;
@@ -144,6 +172,8 @@ const vec3 direction[3] = vec3[3](vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3
 
     Pass "0" {
 
+      precision mediump float;
+
       BlendState 
       {
         Enabled = true;
@@ -155,7 +185,6 @@ const vec3 direction[3] = vec3[3](vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3
       mat4 renderer_ModelMat;
       mat4 renderer_NormalMat;
 
-      VertexShader = vert;
 
       vec3 camera_Position;
       mat4 camera_ViewMat;
@@ -171,23 +200,37 @@ const vec3 direction[3] = vec3[3](vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3
 
       struct a2v {
         vec4 POSITION;
-      }
+        vec4 COLOR;
+      };
 
-      VertexShader = vert;
-      FragmentShader = frag;
+      struct v2f {
+        vec3 v_pos;
+      };
+
+      struct sd {
+        float t1;
+      };
 
       v2f vert(a2v v) {
+        v2f output;
+        sd ts;
+        ts.t1 = 1.f;
+        vec2 v1 = vec2(1.0, 1.);
+        vec2 tt = cellular2x2(v1);
+        output.v_pos = vec4(1.0);
         gl_Position = renderer_MVPMat * v.POSITION;
       }
 
-      void frag() {
+      void frag(v2f v) {
         vec3 grayColor = vec3(0.299, 0., .114);
         float gray = dot(grayColor, gl_FragColor.rgb);
         gl_FragColor = vec4(gray, gray, gray, gl_FragColor.a);
       }
 
+      VertexShader = vert;
+      FragmentShader = frag;
     }
 
-    UsePass "ShaderName"
+    UsePass "Root/PassOther"
   }
 }

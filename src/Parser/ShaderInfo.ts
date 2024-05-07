@@ -1,5 +1,5 @@
-import { EKeyword } from '../Lexer/TokenType';
 import { ASTNode } from './AST';
+import SymbolTable from './SymbolTable';
 import { RenderQueueType } from './engineType';
 
 export enum EShaderDataType {
@@ -11,21 +11,24 @@ export enum EShaderDataType {
 export abstract class ShaderData {
   abstract dataType: EShaderDataType;
 
-  renderQueueType: string | RenderQueueType;
-
   settingRenderState?: ASTNode.GLRenderStateDeclarator;
+  symbolTable: SymbolTable;
+
+  renderQueueType: string | RenderQueueType;
 
   BlendState?: ASTNode.GLRenderStatePropList;
   DepthState?: ASTNode.GLRenderStatePropList;
   StencilState?: ASTNode.GLRenderStatePropList;
   RasterState?: ASTNode.GLRenderStatePropList;
+
+  tags: Record<string, string | number | boolean> = {};
 }
 
 export class GLPassShaderData extends ShaderData {
   dataType = EShaderDataType.Pass;
 
-  vertexMain: ASTNode.FunctionProtoType;
-  fragmentMain: ASTNode.FunctionProtoType;
+  vertexMain: ASTNode.FunctionDefinition;
+  fragmentMain: ASTNode.FunctionDefinition;
 }
 
 export class GLSubShaderData extends ShaderData {
@@ -36,4 +39,6 @@ export class GLSubShaderData extends ShaderData {
 
 export class GLShaderData extends ShaderData {
   dataType = EShaderDataType.Shader;
+
+  subShaderList: ASTNode.GLSubShaderProgram[] = [];
 }

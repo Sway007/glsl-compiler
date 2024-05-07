@@ -1,3 +1,4 @@
+import { CodeGenVisitor } from '../CodeGen';
 import { ENonTerminal } from '../Grammar/GrammarSymbol';
 import Token from '../Lexer/Token';
 import { EKeyword, ETokenType, TokenType } from '../Lexer/TokenType';
@@ -6,15 +7,18 @@ import SematicAnalyzer from './SemanticAnalyzer';
 import {
   EShaderDataType,
   GLPassShaderData,
+  GLShaderData,
   GLSubShaderData,
+  ShaderData,
 } from './ShaderInfo';
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from './SymbolTable';
 import { ParserUtils } from './Utis';
-import { EEnginePropType, EnginePropTypeList, EShaderType } from './constants';
+import { EEnginePropType, EnginePropTypeList } from './constants';
 import { RenderQueueType, RenderStateElementKey } from './engineType';
 import {
   ASTNodeConstructor,
   GalaceanDataType,
+  IParamInfo,
   NodeChild,
   RenderStateLabel,
   StructProp,
@@ -33,6 +37,10 @@ export class TreeNode {
   }
 
   // Visitor pattern interface for code generation
+  codeGen(visitor: CodeGenVisitor) {
+    return visitor.defaultCodeGen(this.children);
+  }
+
   semanticAnalyze(sa: SematicAnalyzer) {}
 }
 
@@ -76,16 +84,6 @@ export namespace ASTNode {
     }
   }
 
-  export class ShaderScopeEndBrace extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.shader_scope_end_brace, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      sa.dropShaderData();
-    }
-  }
-
   export class ScopeBrace extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.scope_brace, loc, children);
@@ -115,6 +113,10 @@ export namespace ASTNode {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
         // TODO: check the equality of function return type declared and this type.
       }
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitJumpStatement(this);
     }
   }
 
@@ -208,22 +210,30 @@ export namespace ASTNode {
 
       let sm: VarSymbol;
       if (this.children.length === 2 || this.children.length === 4) {
-        const symbolType = new SymbolType(fullyType.typeSpecifier.type);
+        const symbolType = new SymbolType(
+          fullyType.type,
+          fullyType.typeSpecifier.lexeme
+        );
         const initializer = this.children[3] as Initializer;
 
-        sm = new VarSymbol(id.lexeme, symbolType, initializer);
+        sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
         const arraySpecifier = this.children[2] as ArraySpecifier;
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(
-          fullyType.typeSpecifier.type,
+          fullyType.type,
+          fullyType.typeSpecifier.lexeme,
           arraySpecifier
         );
         const initializer = this.children[4] as Initializer;
 
-        sm = new VarSymbol(id.lexeme, symbolType, initializer);
+        sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
       sa.scope.insert(sm);
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitSingleDeclaration(this);
     }
   }
 
@@ -255,6 +265,7 @@ export namespace ASTNode {
 
   export class TypeQualifier extends TreeNode {
     qualifierList: EKeyword[];
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.type_qualifier, loc, children);
     }
@@ -275,6 +286,7 @@ export namespace ASTNode {
 
   export class SingleTypeQualifier extends TreeNode {
     qualifier: EKeyword;
+    lexeme: string;
 
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.single_type_qualifier, loc, children);
@@ -282,15 +294,21 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const child = this.children[0];
-      if (child instanceof Token) this.qualifier = child.type as EKeyword;
-      else {
+      if (child instanceof Token) {
+        this.qualifier = child.type as EKeyword;
+        this.lexeme = child.lexeme;
+      } else {
         this.qualifier = (<BasicTypeQualifier>child).qualifier;
+        this.lexeme = (<BasicTypeQualifier>child).lexeme;
       }
     }
   }
 
   abstract class BasicTypeQualifier extends TreeNode {
     qualifier: EKeyword;
+    get lexeme(): string {
+      return (<Token>this.children[0]).lexeme;
+    }
 
     constructor(loc: LocRange, nt: ENonTerminal, children: NodeChild[]) {
       super(nt, loc, children);
@@ -327,6 +345,7 @@ export namespace ASTNode {
 
   export class TypeSpecifier extends TreeNode {
     type: GalaceanDataType;
+    lexeme: string;
     arraySize?: number;
 
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -336,6 +355,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children![0] as TypeSpecifierNonArray).type;
       this.arraySize = (this.children?.[1] as ArraySpecifier)?.size;
+      this.lexeme = (this.children![0] as TypeSpecifierNonArray).lexeme;
     }
 
     equal(other: TypeSpecifier): boolean {
@@ -346,6 +366,10 @@ export namespace ASTNode {
         arraySpecifier?.size === otherArraySpecifier?.size
       );
     }
+
+    // override codeGen(visitor: CodeGenVisitor): string {
+    //   return visitor.visitTypeSpecifier(this);
+    // }
   }
 
   export class ArraySpecifier extends TreeNode {
@@ -363,6 +387,9 @@ export namespace ASTNode {
 
   export class IntegerConstantExpressionOperator extends TreeNode {
     compute: (a: number, b: number) => number;
+    get lexeme(): string {
+      return (this.children[0] as Token).lexeme;
+    }
 
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.integer_constant_expression_operator, loc, children);
@@ -415,10 +442,16 @@ export namespace ASTNode {
         }
       }
     }
+
+    // override codeGen(visitor: CodeGenVisitor): string {
+    //   return visitor.visitIntegerConstantExpression(this);
+    // }
   }
 
   export class TypeSpecifierNonArray extends TreeNode {
     type: GalaceanDataType;
+    lexeme: string;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.type_specifier_nonarray, loc, children);
     }
@@ -432,21 +465,24 @@ export namespace ASTNode {
           sa.error(this.location, 'undeclared type:', this.type);
         }
         this.type = tt.lexeme;
+        this.lexeme = tt.lexeme;
       } else {
         this.type = (tt as ExtBuiltinTypeSpecifierNonArray)
           .type as GalaceanDataType;
+        this.lexeme = (tt as ExtBuiltinTypeSpecifierNonArray).lexeme;
       }
     }
   }
 
   export class ExtBuiltinTypeSpecifierNonArray extends TreeNode {
     type: TokenType;
+    lexeme: string;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.ext_builtin_type_specifier_nonarray, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      this.type = (this.children[0] as Token).type;
+      const token = this.children[0] as Token;
+      this.type = token.type;
+      this.lexeme = token.lexeme;
     }
   }
 
@@ -456,6 +492,7 @@ export namespace ASTNode {
         const singleDecl = this.children[0] as SingleDeclaration;
         return new SymbolType(
           singleDecl.typeSpecifier.type,
+          singleDecl.typeSpecifier.lexeme,
           singleDecl.arraySpecifier
         );
       }
@@ -472,7 +509,7 @@ export namespace ASTNode {
       let sm: VarSymbol;
       if (this.children.length === 3 || this.children.length === 5) {
         const id = this.children[2] as Token;
-        sm = new VarSymbol(id.lexeme, this.typeInfo);
+        sm = new VarSymbol(id.lexeme, this.typeInfo, false);
         sa.scope.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
@@ -482,7 +519,7 @@ export namespace ASTNode {
         }
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
-        sm = new VarSymbol(id.lexeme, typeInfo);
+        sm = new VarSymbol(id.lexeme, typeInfo, false);
         sa.scope.insert(sm);
       }
     }
@@ -508,6 +545,10 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.declaration, loc, children);
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitDeclaration(this);
+    }
   }
 
   export class FunctionProtoType extends TreeNode {
@@ -527,13 +568,16 @@ export namespace ASTNode {
       return this.declarator.parameterInfoList;
     }
 
+    get paramSig() {
+      return this.declarator.paramSig;
+    }
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_prototype, loc, children);
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const sm = new FnSymbol(this.ident.lexeme, this);
-      sa.scope.insert(sm);
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionProtoType(this);
     }
   }
 
@@ -558,6 +602,10 @@ export namespace ASTNode {
       return this.parameterList?.parameterInfoList;
     }
 
+    get paramSig() {
+      return this.parameterList?.paramSig;
+    }
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_declarator, loc, children);
     }
@@ -574,10 +622,14 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_header, loc, children);
     }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      sa.newScope();
+    }
   }
 
   export class FunctionParameterList extends TreeNode {
-    get parameterInfoList(): { ident: Token; typeInfo: SymbolType }[] {
+    get parameterInfoList(): IParamInfo[] {
       if (this.children.length === 1) {
         const decl = this.children[0] as ParameterDeclaration;
         return [{ ident: decl.ident, typeInfo: decl.typeInfo }];
@@ -588,6 +640,17 @@ export namespace ASTNode {
         ...list.parameterInfoList,
         { ident: decl.ident, typeInfo: decl.typeInfo },
       ];
+    }
+
+    get paramSig(): string {
+      if (this.children.length === 1) {
+        const decl = this.children[0] as ParameterDeclaration;
+        return `${decl.typeInfo.type}`;
+      } else {
+        const list = this.children[0] as FunctionParameterList;
+        const decl = this.children[2] as ParameterDeclaration;
+        return `${list.paramSig};${decl.typeInfo.type}`;
+      }
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -617,6 +680,21 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.parameter_declaration, loc, children);
     }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      let declarator: ParameterDeclarator;
+      if (this.children.length === 1) {
+        declarator = this.children[0] as ParameterDeclarator;
+      } else {
+        declarator = this.children[1] as ParameterDeclarator;
+      }
+      const varSymbol = new VarSymbol(
+        declarator.ident.lexeme,
+        declarator.typeInfo,
+        false
+      );
+      sa.scope.insert(varSymbol);
+    }
   }
 
   export class ParameterDeclarator extends TreeNode {
@@ -627,7 +705,11 @@ export namespace ASTNode {
     get typeInfo(): SymbolType {
       const typeSpecifier = this.children[0] as TypeSpecifier;
       const arraySpecifier = this.children[2] as ArraySpecifier;
-      return new SymbolType(typeSpecifier.type, arraySpecifier);
+      return new SymbolType(
+        typeSpecifier.type,
+        typeSpecifier.lexeme,
+        arraySpecifier
+      );
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -639,11 +721,25 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
     }
+
+    // override codeGen(visitor: CodeGenVisitor): string {
+    //   return visitor.visitSimpleStatement(this);
+    // }
   }
 
   export class CompoundStatement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement, loc, children);
+    }
+
+    // override codeGen(visitor: CodeGenVisitor): string {
+    //   return visitor.visitCompoundStatement(this);
+    // }
+  }
+
+  export class CompoundStatementNoScope extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.compound_statement_no_scope, loc, children);
     }
   }
 
@@ -657,11 +753,33 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.statement_list, loc, children);
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitStatementList(this);
+    }
   }
 
   export class FunctionDefinition extends TreeNode {
+    get protoType() {
+      return this.children[0] as FunctionProtoType;
+    }
+
+    get statements() {
+      return this.children[1] as CompoundStatementNoScope;
+    }
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_definition, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      sa.dropScope();
+      const sm = new FnSymbol(this.protoType.ident.lexeme, this);
+      sa.scope.insert(sm);
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionDefinition(this);
     }
   }
 
@@ -673,9 +791,15 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children[0] as FunctionCallGeneric).type;
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionCall(this);
+    }
   }
 
   export class FunctionCallGeneric extends ExpressionAstNode {
+    fnSymbol: FnSymbol | undefined;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_generic, loc, children);
     }
@@ -706,6 +830,7 @@ export namespace ASTNode {
           return;
         }
         this.type = fnSymbol.symDataType?.type;
+        this.fnSymbol = fnSymbol;
       }
     }
   }
@@ -746,6 +871,11 @@ export namespace ASTNode {
       return ty.type;
     }
 
+    get lexeme() {
+      const ty = this.children[0] as TypeSpecifier;
+      return ty.lexeme;
+    }
+
     get isBuiltin() {
       return typeof this.ident !== 'string';
     }
@@ -755,6 +885,10 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {}
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionIdentifier(this);
+    }
   }
 
   export class AssignmentExpression extends ExpressionAstNode {
@@ -834,6 +968,10 @@ export namespace ASTNode {
         const child = this.children[0] as PrimaryExpression | FunctionCall;
         this.type = child.type;
       }
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitPostfixExpression(this);
     }
   }
 
@@ -1028,7 +1166,7 @@ export namespace ASTNode {
 
     get propList(): StructProp[] {
       const declList = (
-        this.children.length === 5 ? this.children[3] : this.children[2]
+        this.children.length === 6 ? this.children[3] : this.children[2]
       ) as StructDeclarationList;
       return declList.propList;
     }
@@ -1038,7 +1176,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (this.children.length === 5) {
+      if (this.children.length === 6) {
         this.ident = this.children[1] as Token;
         sa.scope.insert(new StructSymbol(this.ident.lexeme, this));
       }
@@ -1080,6 +1218,7 @@ export namespace ASTNode {
       for (const declarator of this.declaratorList.declaratorList) {
         const typeInfo = new SymbolType(
           this.typeSpecifier.type,
+          this.typeSpecifier.lexeme,
           declarator.arraySpecifier
         );
         const prop = new StructProp(typeInfo, declarator.ident);
@@ -1134,7 +1273,8 @@ export namespace ASTNode {
       if (type instanceof Token) {
         sm = new VarSymbol(
           ident.lexeme,
-          new SymbolType(<EKeyword.GL_RenderQueueType>type.type)
+          new SymbolType(<EKeyword.GL_RenderQueueType>type.type, ''),
+          false
         );
       } else if (
         typeof type.type === 'string' &&
@@ -1143,7 +1283,11 @@ export namespace ASTNode {
         sa.error(type.location, 'Not supported type.');
         return;
       } else {
-        sm = new VarSymbol(ident.lexeme, new SymbolType(type.type));
+        sm = new VarSymbol(
+          ident.lexeme,
+          new SymbolType(type.type, type.typeSpecifier.lexeme),
+          true
+        );
       }
 
       sa.scope.insert(sm);
@@ -1194,6 +1338,10 @@ export namespace ASTNode {
       if (!this.symbolInfo) {
         sa.error(this.location, 'undeclared identifier:', token.lexeme);
       }
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitVariableIdentifier(this);
     }
   }
 
@@ -1296,6 +1444,24 @@ export namespace ASTNode {
     }
   }
 
+  export class GLEngineType extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_engine_type, loc, children);
+    }
+  }
+
+  export class GLEngineTypeInit extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_engine_type_init, loc, children);
+    }
+  }
+
+  export class GLEngineTypeInitParamList extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_engine_type_init_param_list, loc, children);
+    }
+  }
+
   export class GLRenderStateDeclarator extends TreeNode {
     get ident(): RenderStateLabel {
       const ident = this.children[0] as Token;
@@ -1336,8 +1502,8 @@ export namespace ASTNode {
       const declarator = this.children[0] as GLRenderStateDeclarator;
       const ident = this.children[1] as Token;
 
-      const symbolType = new SymbolType(declarator.type);
-      const varSymbol = new VarSymbol(ident.lexeme, symbolType, this);
+      const symbolType = new SymbolType(declarator.type, declarator.ident);
+      const varSymbol = new VarSymbol(ident.lexeme, symbolType, false, this);
       sa.scope.insert(varSymbol);
     }
   }
@@ -1429,24 +1595,41 @@ export namespace ASTNode {
     }
   }
 
-  export class GLPassProgram extends TreeNode {
+  abstract class GLProgram extends TreeNode {
+    abstract shaderData: ShaderData;
+    name: string;
+
+    constructor(nt: ENonTerminal, loc: LocRange, children: NodeChild[]) {
+      super(nt, loc, children);
+      const ident = this.children[1] as Token;
+      this.name = ident.lexeme;
+    }
+  }
+
+  export class GLPassProgram extends GLProgram {
+    shaderData: GLPassShaderData;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_pass_program, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
+      this.shaderData = sa.dropShaderData() as GLPassShaderData;
+
       const shaderData = sa.shaderData as GLSubShaderData;
       shaderData.passList.push(this);
     }
   }
 
   export class GLTagValue extends TreeNode {
-    get value(): string | number {
+    get value(): string | number | boolean {
       const token = this.children[0] as Token;
       if (token.type === ETokenType.INT_CONSTANT) {
         return Number(token.lexeme);
+      } else if (token.type === ETokenType.STRING_CONST) {
+        return token.lexeme;
       }
-      return token.lexeme;
+      return token.lexeme === 'true';
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -1455,6 +1638,11 @@ export namespace ASTNode {
   }
 
   export class GLTagId extends TreeNode {
+    get tag(): string {
+      const id = this.children[0] as Token;
+      return id.lexeme;
+    }
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_tag_id, loc, children);
     }
@@ -1463,6 +1651,14 @@ export namespace ASTNode {
   export class GLTagAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_tag_assignment, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      const shaderData = sa.shaderData;
+      const tagId = this.children[0] as GLTagId;
+      const tagValue = this.children[2] as GLTagValue;
+
+      shaderData.tags[tagId.tag] = tagValue.value;
     }
   }
 
@@ -1481,6 +1677,70 @@ export namespace ASTNode {
   export class GLCommonGlobalDeclaration extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_common_global_declaration, loc, children);
+    }
+  }
+
+  export class GLSubShaderGlobalDeclaration extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_subshader_global_declaration, loc, children);
+    }
+  }
+
+  export class GLSubShaderGlobalDeclarationList extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_subshader_global_declaration_list, loc, children);
+    }
+  }
+
+  export class GLSubShaderProgram extends GLProgram {
+    shaderData: GLSubShaderData;
+
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_subshader_program, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      this.shaderData = sa.dropShaderData() as GLSubShaderData;
+
+      const shaderData = sa.shaderData as GLShaderData;
+      shaderData.subShaderList.push(this);
+    }
+  }
+
+  export class GLShaderGlobalDeclarationList extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_shader_global_declaration_list, loc, children);
+    }
+  }
+
+  export class GLShaderGlobalDeclaration extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_shader_global_declaration, loc, children);
+    }
+  }
+
+  export class GLEditorMacroDeclaration extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_editor_macro_declaration, loc, children);
+    }
+  }
+
+  export class GLEditorPropDeclaration extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_editor_prop_declaration, loc, children);
+    }
+  }
+
+  export class GLShaderProgram extends GLProgram {
+    shaderData: GLShaderData;
+
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal.gl_shader_program, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      this.shaderData = sa.dropShaderData() as GLShaderData;
+      this.shaderData.symbolTable = sa.scope;
     }
   }
 }
