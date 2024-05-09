@@ -1,4 +1,8 @@
 export default class Position {
+  static invalid() {
+    return new Position(-1, -1, -1);
+  }
+
   index: number;
   line: number;
   column: number;
@@ -13,11 +17,19 @@ export default class Position {
   offset(count: number) {
     return new Position(this.index + count, this.line, this.column + count);
   }
+
+  toString() {
+    return `Pos<line ${this.line}, column ${this.column}, index ${this.index}>`;
+  }
 }
 
 export class LocRange {
   readonly start: Position;
   readonly end: Position;
+
+  static invalid() {
+    return new LocRange(Position.invalid(), Position.invalid());
+  }
 
   constructor(start: Position, end: Position) {
     this.start = start;

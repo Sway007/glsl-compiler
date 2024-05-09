@@ -20,13 +20,8 @@ export default class Lexer {
   }
 
   *tokenize() {
-    let line = 0;
     while (!this.isEnd()) {
-      const token = this.scanToken();
-      if (token.position.line !== line) {
-        line = token.position.line;
-      }
-      yield token;
+      yield this.scanToken();
     }
     return EOF;
   }
@@ -50,7 +45,6 @@ export default class Lexer {
     if (LexerUtils.isNum(this.curChar())) {
       return this.scanNum();
     }
-    if (this.isEnd()) return EOF;
     switch (this.curChar()) {
       case '<':
         this.advance();

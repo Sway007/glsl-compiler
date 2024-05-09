@@ -6,3 +6,5 @@ lalr1.bin
 .prettierignore
 dist
 test/parser/output
+*.output
+*.tab.c

@@ -1,0 +1,1 @@
+type PpConstant = boolean | number;

@@ -1,0 +1,101 @@
+// Author: @patriciogv
+// Title: CellularNoise
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+const int it = 2;
+
+float frequencies[(it + 2) / 1];
+
+#ifdef ELss
+float fn(int, int);
+#elif GL_ES == 1
+float ve2;
+#else
+float else;
+#endif
+
+#define PI 3.14159265359
+#define RECIPROCAL_PI 0.31830988618
+#define EPSILON 1e-6
+#define LOG2 1.442695
+
+#define saturate( a ) clamp( a, 0.0, 1.0 )
+
+#ifndef xxx
+float v212;
+#endif
+
+#include "xxx.glsl"
+
+float computeParticleRotationFloat(in float rotation, in float age, in float normalizedAge) {
+    #if !defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
+        #ifdef RENDERER_ROL_CURVE_MODE
+            float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge);
+            #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge), lifeRotation, a_Random0.w);
+            #endif
+            rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
+        #else
+            float lifeRotation = renderer_ROLMaxConst.z;
+            #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                lifeRotation = mix(renderer_ROLMinConst.z, lifeRotation, a_Random0.w);
+            #endif
+            rotation += lifeRotation * age;
+        #endif
+    #endif
+    return rotation;
+}
+
+
+float v1;
+
+
+vec2 random2( vec2 p ) {
+    return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
+}
+
+float fn(int c, int b) {return 2.;}
+
+
+void main() {
+    
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    st.x *= u_resolution.x/u_resolution.y;
+    vec3 color = vec3(.0);
+
+    // Scale
+    st *= 3.;
+
+    // Tile the space
+    vec2 i_st = floor(st);
+    vec2 f_st = fract(st);
+
+    vec2 point = random2(i_st);
+    vec2 diff = point - f_st;
+
+    float dist = length(diff);
+
+    // Draw the min distance (distance field)
+    color += dist;
+
+    // Draw cell center
+    color += 1.-step(.02, dist);
+
+    // Draw grid
+    color.r += step(.98, f_st.x) + step(.98, f_st.y);
+
+    saturate(1.0);
+
+    // Show isolines
+    // color -= step(.7,abs(sin(27.0*dist)))*.5;
+
+    gl_FragColor = vec4(color,1.0);
+}
