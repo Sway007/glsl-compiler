@@ -68,13 +68,3 @@ export const PpKeyword = new Map<string, EPpKeyword>([
   ['#include', EPpKeyword.include],
   ['defined', EPpKeyword.defined],
 ]);
-
-// export enum EMacroAst {
-//   macro_expression = 101,
-//   define_macro,
-//   undef_macro,
-//   if_macro,
-//   ifdef_macro,
-//   ifndef_macro,
-//   include_macro,
-// }

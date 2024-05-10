@@ -22,7 +22,7 @@ export class MacroDefine extends MacroExpand {
     this.args = args;
   }
 
-  expand(...args: string[]): string {
+  private _expand(...args: string[]): string {
     if (this.isFunction) {
       const argsTextList = this.args!.map((item) => item.lexeme);
 
@@ -36,5 +36,10 @@ export class MacroDefine extends MacroExpand {
       });
     }
     return this.body.lexeme;
+  }
+
+  expand(...args: string[]): string {
+    const ret = this._expand(...args);
+    return ret.replaceAll(/(\/\/[^\n]*|\/\*.*\*\/)/gs, '');
   }
 }

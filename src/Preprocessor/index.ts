@@ -11,7 +11,7 @@ export default class Preprocessor {
   }
 
   process() {
-    this.parser.parse(this.scanner);
+    return this.parser.parse(this.scanner);
   }
 }
 

@@ -4,25 +4,30 @@
 
 import LexerUtils from '../Lexer/Utils';
 import Position, { LocRange } from '../common/Position';
-import { MacroBranch } from './MacroBranch';
+// import { MacroBranch } from './MacroBranch';
 import { MacroDefine } from './MacroDefine';
 import { MacroExpand } from './MacroExpand';
 import { MacroInclude } from './MacroInclude';
 import { PpError } from './PpError';
 import PpScanner from './Scanner';
 import PpToken from './Token';
+import { PpUtils } from './Utils';
 import { EPpKeyword, EPpToken } from './constants';
 
-interface ExpandSegment {
+export interface ExpandSegment {
   range: LocRange;
   replace: string;
 }
 
 export default class PpParser extends PpError {
   private definedMacros: Map<string, MacroDefine> = new Map();
-  private branchMacros: MacroExpand[] = [];
+  // private branchMacros: MacroExpand[] = [];
   private includeMacros: MacroExpand[] = [];
-  private expandSegments: ExpandSegment[] = [];
+  private expandSegmentsStack: ExpandSegment[][] = [[]];
+
+  private get expandSegments() {
+    return this.expandSegmentsStack[this.expandSegmentsStack.length - 1];
+  }
 
   constructor() {
     super();
@@ -37,7 +42,7 @@ export default class PpParser extends PpError {
     );
   }
 
-  parse(scanner: PpScanner) {
+  parse(scanner: PpScanner): string {
     while (!scanner.isEnd()) {
       const directive = scanner.scanDirective(this.expandToken.bind(this))!;
       if (scanner.isEnd()) break;
@@ -67,6 +72,19 @@ export default class PpParser extends PpError {
           break;
       }
     }
+
+    return PpUtils.expand(this.expandSegments, scanner.source);
+  }
+
+  /**
+   * Recursively expand macro body and expansion.
+   */
+  private expandMacroChunk(chunk: string, start: Position) {
+    this.expandSegmentsStack.push([]);
+    const scanner = new PpScanner(chunk, start);
+    const ret = this.parse(scanner);
+    this.expandSegmentsStack.pop();
+    return ret;
   }
 
   private expandToken(token: PpToken, scanner: PpScanner) {
@@ -76,23 +94,38 @@ export default class PpParser extends PpError {
       if (macro.isFunction) {
         scanner.scanToChar('(');
         scanner.advance();
-        const start = scanner.current;
-        scanner.scanToChar(')');
-        const end = scanner.current;
-        const argsText = scanner.source.slice(start, end);
-        const args = argsText.split(',');
+
+        // extract parameters
+        const args: string[] = [];
+        let curLvl = 1;
+        let curIdx = scanner.current;
+        while (true) {
+          if (scanner.curChar() === '(') curLvl += 1;
+          else if (scanner.curChar() === ')') {
+            curLvl -= 1;
+            if (curLvl === 0) break;
+          } else if (scanner.curChar() === ',' && curLvl === 1) {
+            args.push(scanner.source.slice(curIdx, scanner.current));
+            curIdx = scanner.current + 1;
+          }
+          scanner.advance();
+        }
+        args.push(scanner.source.slice(curIdx, scanner.current));
+
         scanner.advance();
         const range = new LocRange(token.position, scanner.getPosition());
         replace = macro.expand(...args);
-        this.expandSegments.push({ range, replace });
+        const expanded = this.expandMacroChunk(replace, scanner.getPosition());
+        this.expandSegments.push({ range, replace: expanded });
       } else {
-        this.expandSegments.push({ range: token.location, replace });
+        const expanded = this.expandMacroChunk(replace, scanner.getPosition());
+        this.expandSegments.push({ range: token.location, replace: expanded });
       }
     }
   }
 
   private parseInclude(scanner: PpScanner) {
-    const start = scanner.getPosition(7);
+    const start = scanner.getPosition(8);
 
     scanner.skipSpace();
     const id = scanner.scanQuotedString();
@@ -103,7 +136,7 @@ export default class PpParser extends PpError {
   }
 
   private parseIfNdef(scanner: PpScanner) {
-    const start = scanner.getPosition(6);
+    const start = scanner.getPosition(7);
 
     const id = scanner.scanWord();
     const macro = this.definedMacros.get(id.lexeme);
@@ -113,8 +146,13 @@ export default class PpParser extends PpError {
         nextDirective.type === EPpKeyword.endif
           ? scanner.getPosition()
           : scanner.scanRemainMacro();
-      const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
-      this.branchMacros.push(macroBranch);
+      // const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
+      // this.branchMacros.push(macroBranch);
+      const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
+      this.expandSegments.push({
+        range: new LocRange(start, end),
+        replace: expanded,
+      });
       return;
     }
 
@@ -122,7 +160,7 @@ export default class PpParser extends PpError {
   }
 
   private parseIfDef(scanner: PpScanner) {
-    const start = scanner.getPosition(5);
+    const start = scanner.getPosition(6);
 
     const id = scanner.scanWord();
     const macro = this.definedMacros.get(id.lexeme);
@@ -133,8 +171,15 @@ export default class PpParser extends PpError {
         nextDirective.type === EPpKeyword.endif
           ? scanner.getPosition()
           : scanner.scanRemainMacro();
-      const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
-      this.branchMacros.push(macroBranch);
+      // const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
+      // this.branchMacros.push(macroBranch);
+
+      const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
+      this.expandSegments.push({
+        range: new LocRange(start, end),
+        replace: expanded,
+      });
+
       return;
     }
 
@@ -151,8 +196,13 @@ export default class PpParser extends PpError {
         nextDirective.type === EPpKeyword.endif
           ? scanner.getPosition()
           : scanner.scanRemainMacro();
-      const macroIf = new MacroBranch(bodyChunk, new LocRange(start, end));
-      this.branchMacros.push(macroIf);
+      // const macroIf = new MacroBranch(bodyChunk, new LocRange(start, end));
+      // this.branchMacros.push(macroIf);
+      const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
+      this.expandSegments.push({
+        range: new LocRange(start, end),
+        replace: expanded,
+      });
       return;
     }
 
@@ -164,23 +214,39 @@ export default class PpParser extends PpError {
     directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
     scanner: PpScanner
   ) {
-    if (directive === EPpKeyword.endif) return;
+    if (directive === EPpKeyword.endif) {
+      this.expandSegments.push({
+        range: new LocRange(start, scanner.getPosition()),
+        replace: '',
+      });
+      return;
+    }
 
     if (directive === EPpKeyword.else) {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
-      const macroIf = new MacroBranch(
-        elseChunk,
-        new LocRange(start, scanner.getPosition())
-      );
-      this.branchMacros.push(macroIf);
+      // const macroIf = new MacroBranch(
+      //   elseChunk,
+      //   new LocRange(start, scanner.getPosition())
+      // );
+      // this.branchMacros.push(macroIf);
+      const expanded = this.expandMacroChunk(elseChunk.lexeme, start);
+      this.expandSegments.push({
+        range: new LocRange(start, scanner.getPosition()),
+        replace: expanded,
+      });
     } else if (directive === EPpKeyword.elif) {
       const constantExpr = this.parseConstantExpression(scanner);
       const { token: bodyChunk, nextDirective } =
         scanner.scanMacroBranchChunk();
       if (!!constantExpr) {
         const end = scanner.scanRemainMacro();
-        const macroIf = new MacroBranch(bodyChunk, new LocRange(start, end));
-        this.branchMacros.push(macroIf);
+        // const macroIf = new MacroBranch(bodyChunk, new LocRange(start, end));
+        // this.branchMacros.push(macroIf);
+        const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
+        this.expandSegments.push({
+          range: new LocRange(start, end),
+          replace: expanded,
+        });
       } else {
         this.parseMacroBranch(start, <any>nextDirective.type, scanner);
       }
@@ -402,10 +468,14 @@ export default class PpParser extends PpError {
   }
 
   private parseDefine(scanner: PpScanner) {
+    const start = scanner.getPosition(7);
     const macro = scanner.scanWord();
-    const start = macro.position;
+
     let end = macro.location.end;
-    if (this.definedMacros.get(macro.lexeme)) {
+    if (
+      this.definedMacros.get(macro.lexeme) &&
+      macro.lexeme.startsWith('GL_')
+    ) {
       this.throw(macro.location, 'redefined macro:', macro.lexeme);
     }
 
@@ -422,5 +492,10 @@ export default class PpParser extends PpError {
       macroArgs
     );
     this.definedMacros.set(macro.lexeme, macroDefine);
+
+    this.expandSegments.push({
+      range: new LocRange(start, scanner.getPosition()),
+      replace: '',
+    });
   }
 }

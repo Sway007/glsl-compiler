@@ -1,5 +1,7 @@
 import Position, { LocRange } from '../common/Position';
 import { MacroExpand } from './MacroExpand';
+import PpParser from './Parser';
+import PpScanner from './Scanner';
 import PpToken from './Token';
 import { EPpToken } from './constants';
 
@@ -12,7 +14,6 @@ export class MacroBranch extends MacroExpand {
   }
 
   override expand(): string {
-    // TODO: recursive parse.
-    return 'Method not implemented.';
+    return this.macroBody.lexeme;
   }
 }

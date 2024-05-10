@@ -1,8 +1,10 @@
 import LexerUtils from '../Lexer/Utils';
 import { Logger } from '../Logger';
 import Position, { LocRange } from '../common/Position';
+import { ExpandSegment } from './Parser';
 import { PpError } from './PpError';
 import PpToken, { EOF } from './Token';
+import { PpUtils } from './Utils';
 import { EPpKeyword, EPpToken, PpKeyword } from './constants';
 
 export type OnToken = (token: PpToken, scanner: PpScanner) => void;
@@ -13,18 +15,22 @@ export default class PpScanner extends PpError {
     return this._source;
   }
 
+  private _start_offset = 0;
   private _current = 0;
   get current() {
     return this._current;
   }
 
-  private line = 0;
-  private column = 0;
+  private line: number;
+  private column: number;
 
   private macroLvl = 0;
 
-  constructor(source: string) {
+  constructor(source: string, start = new Position(0, 0, 0)) {
     super();
+    this.line = start.line;
+    this.column = start.column;
+    this._start_offset = start.index;
     this._source = source;
   }
 
@@ -173,11 +179,11 @@ export default class PpScanner extends PpError {
    */
   scanToken(onToken?: OnToken): PpToken | undefined {
     this.skipSpace();
+    if (this.isEnd()) return;
     const start = this._current;
     while (/[\w#.]/.test(this.curChar()) && !this.isEnd()) {
       this._advance();
     }
-    if (this.isEnd()) return;
     if (start === this._current) {
       this._advance();
       return this.scanToken(onToken);
@@ -197,15 +203,14 @@ export default class PpScanner extends PpError {
    * @param expandOnToken callback on encountering token.
    */
   scanDirective(expandOnToken?: OnToken) {
-    const directive = this.advanceToDirective(expandOnToken)!;
-    if (this.isEnd()) return;
+    const directive = this.advanceToDirective(expandOnToken);
     if (
       [EPpKeyword.if, EPpKeyword.ifdef, EPpKeyword.ifndef].includes(
-        <any>directive.type
+        <any>directive?.type
       )
     ) {
       this.macroLvl += 1;
-    } else if (<any>directive.type === EPpKeyword.endif) {
+    } else if (<any>directive?.type === EPpKeyword.endif) {
       this.macroLvl -= 1;
     }
     return directive;
@@ -213,7 +218,7 @@ export default class PpScanner extends PpError {
 
   peekNonSpace() {
     let current = this._current;
-    while (!/\s/.test(this._source[current])) {
+    while (/\s/.test(this._source[current])) {
       current += 1;
     }
     return this._source[current];
@@ -238,8 +243,14 @@ export default class PpScanner extends PpError {
     this._current++;
   }
 
+  /**
+   * Skip comments
+   */
   scanLineRemain() {
     const start = this._current;
+
+    const comments: LocRange[] = [];
+
     while (this.curChar() !== '\n') {
       if (this.isEnd()) {
         const line = this._source.slice(start, this._current);
@@ -250,8 +261,21 @@ export default class PpScanner extends PpError {
         );
       }
       this.advance();
+      const commentRange = this.skipComments();
+      if (commentRange) {
+        commentRange.start.index -= start;
+        commentRange.end.index -= start;
+        comments.push(commentRange);
+      }
     }
-    const line = this._source.slice(start, this._current);
+    let line = this._source.slice(start, this._current);
+    if (comments.length) {
+      // filter comments
+      line = PpUtils.expand(
+        comments.map((item) => ({ range: item, replace: '' })),
+        line
+      );
+    }
     return new PpToken(
       EPpToken.line_remain,
       line,
@@ -319,7 +343,7 @@ export default class PpScanner extends PpError {
         return new PpToken(EPpToken.bang, '!', this.getPosition());
 
       case '/':
-        if (this.peek() !== '/') {
+        if (this.peek(2) !== '//') {
           this.advance();
           return new PpToken(EPpToken.slash, '/', this.getPosition());
         }
@@ -337,21 +361,21 @@ export default class PpScanner extends PpError {
         return new PpToken(EPpToken.dash, '-', this.getPosition());
 
       case '=':
-        if (this.peek() === '=') {
+        if (this.peek(2) === '==') {
           this.advance();
           this.advance();
           return new PpToken(EPpToken.eq, '==', this.getPosition(2));
         }
 
       case '&':
-        if (this.peek() === '&') {
+        if (this.peek(2) === '&&') {
           this.advance();
           this.advance();
           return new PpToken(EPpToken.and, '&&', this.getPosition(2));
         }
 
       case '|':
-        if (this.peek() === '|') {
+        if (this.peek(2) === '||') {
           this.advance();
           this.advance();
           return new PpToken(EPpToken.or, '||', this.getPosition(2));
@@ -372,9 +396,27 @@ export default class PpScanner extends PpError {
 
   private advanceToDirective(onToken?: OnToken): PpToken | undefined {
     while (true) {
-      const token = this.scanToken(onToken)!;
+      const token = this.scanToken(onToken);
+      if (token?.lexeme.startsWith('#')) return token;
       if (this.isEnd()) return;
-      if (token.lexeme.startsWith('#')) return token;
+    }
+  }
+
+  private skipComments(): LocRange | undefined {
+    if (this.peek(2) === '//') {
+      const start = this.getPosition();
+      // single line comments
+      while (this.curChar() !== '\n') this._advance();
+      return new LocRange(start, this.getPosition());
+    } else if (this.peek(2) === '/*') {
+      const start = this.getPosition();
+      //  multi-line comments
+      this._advance();
+      this._advance();
+      while (this.peek(2) !== '*/' && !this.isEnd()) this._advance();
+      this._advance();
+      this._advance();
+      return new LocRange(start, this.getPosition());
     }
   }
 }
