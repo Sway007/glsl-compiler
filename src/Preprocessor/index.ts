@@ -2,8 +2,8 @@ import PpParser from './Parser';
 import PpScanner from './Scanner';
 
 export default class Preprocessor {
-  scanner: PpScanner;
-  parser: PpParser;
+  private scanner: PpScanner;
+  private parser: PpParser;
 
   constructor(source: string) {
     this.scanner = new PpScanner(source);

@@ -21,9 +21,11 @@ export interface ExpandSegment {
 
 export default class PpParser extends PpError {
   private definedMacros: Map<string, MacroDefine> = new Map();
-  // private branchMacros: MacroExpand[] = [];
   private includeMacros: MacroExpand[] = [];
   private expandSegmentsStack: ExpandSegment[][] = [[]];
+
+  /** Referenced by branch macro or defined operator */
+  branchMacros: Set<string> = new Set();
 
   private get expandSegments() {
     return this.expandSegmentsStack[this.expandSegmentsStack.length - 1];
@@ -139,6 +141,8 @@ export default class PpParser extends PpError {
     const start = scanner.getPosition(7);
 
     const id = scanner.scanWord();
+    this.branchMacros.add(id.lexeme);
+
     const macro = this.definedMacros.get(id.lexeme);
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!macro) {
@@ -146,8 +150,7 @@ export default class PpParser extends PpError {
         nextDirective.type === EPpKeyword.endif
           ? scanner.getPosition()
           : scanner.scanRemainMacro();
-      // const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
-      // this.branchMacros.push(macroBranch);
+
       const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
       this.expandSegments.push({
         range: new LocRange(start, end),
@@ -163,6 +166,8 @@ export default class PpParser extends PpError {
     const start = scanner.getPosition(6);
 
     const id = scanner.scanWord();
+    this.branchMacros.add(id.lexeme);
+
     const macro = this.definedMacros.get(id.lexeme);
     scanner.skipSpace();
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
@@ -171,8 +176,6 @@ export default class PpParser extends PpError {
         nextDirective.type === EPpKeyword.endif
           ? scanner.getPosition()
           : scanner.scanRemainMacro();
-      // const macroBranch = new MacroBranch(bodyChunk, new LocRange(start, end));
-      // this.branchMacros.push(macroBranch);
 
       const expanded = this.expandMacroChunk(bodyChunk.lexeme, start);
       this.expandSegments.push({
@@ -439,6 +442,7 @@ export default class PpParser extends PpError {
           scanner.scanToChar(')');
           scanner.advance();
         }
+        this.branchMacros.add(macro.lexeme);
         return !!this.definedMacros.get(macro.lexeme);
       } else {
         const macro = this.definedMacros.get(id.lexeme);
@@ -452,6 +456,7 @@ export default class PpParser extends PpError {
         if (!Number.isInteger(value)) {
           this.throw(id.location, 'invalid const macro:', id.lexeme);
         }
+        this.branchMacros.add(id.lexeme);
         return value;
       }
     } else if (LexerUtils.isNum(scanner.curChar())) {

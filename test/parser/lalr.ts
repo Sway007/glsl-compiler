@@ -1,4 +1,4 @@
-import { mkdir, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import LREncoder from '../../src/ParserGenerator/Encoder';
 import LALR1 from '../../src/ParserGenerator/LALR1';
 import LRLoader from '../../src/Parser/Loader';
@@ -10,19 +10,23 @@ import Lexer from '../../src/Lexer';
 // import testCase from './cases/simple';
 // import testCase from './cases/medium';
 // import testCase from './cases/glsl';
-import testCase from './cases/galacean';
+import { createGrammar, addTranslationRule } from '../../src/Grammar/galacean';
 import { GLES100Visitor, GLES300Visitor } from '../../src/CodeGen';
 import { join } from 'path';
 
 async function main() {
-  const grammar = testCase.createGrammar();
+  const grammar = createGrammar();
+
+  const source = readFileSync(
+    join(__dirname, 'cases/glsl/demo2.gs')
+  ).toString();
 
   const parser = new LALR1(grammar);
   parser.generate();
 
   await printFirstSet(parser.firstSetMap, '.local/firstSet.text');
   await printStatePool('.local/state.txt');
-  if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
+  // if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
   LREncoder.encode('lalr1.bin', parser);
 
   console.log('decoding ....');
@@ -37,9 +41,9 @@ async function main() {
   // if (testCase.printConfig)
   //   printStateTable(testCase.printConfig, decodedParser);
 
-  const lexer = new Lexer(testCase.source);
+  const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  testCase.addTranslationRule(decodedParser.sematicAnalyzer);
+  addTranslationRule(decodedParser.sematicAnalyzer);
   // decodedParser.parse(tokens, true);
   const ret = decodedParser.parse(tokens);
   const codeGen = new GLES300Visitor();

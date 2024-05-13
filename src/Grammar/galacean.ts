@@ -1,19 +1,12 @@
 import { readFileSync } from 'fs';
-import Grammar from '../../../src/Grammar';
-import {
-  ENonTerminal,
-  GrammarSymbol,
-} from '../../../src/Grammar/GrammarSymbol';
-import GrammarUtils from '../../../src/Grammar/Utils';
-import Token from '../../../src/Lexer/Token';
-import { EKeyword, ETokenType } from '../../../src/Lexer/TokenType';
-import SematicAnalyzer, {
-  TranslationRule,
-} from '../../../src/Parser/SemanticAnalyzer';
-import { LocRange } from '../../../src/common/Position';
-import { TestCase } from '../types';
+import Grammar from '.';
+import { ENonTerminal, GrammarSymbol } from './GrammarSymbol';
+import GrammarUtils from './Utils';
+import { EKeyword, ETokenType } from '../Lexer/TokenType';
+import SematicAnalyzer, { TranslationRule } from '../Parser/SemanticAnalyzer';
+import { TestCase } from '../../test/parser/types';
 import { join } from 'path';
-import { ASTNode, TreeNode } from '../../../src/Parser/AST';
+import { ASTNode } from '../Parser/AST';
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptionsV2(
@@ -1402,12 +1395,4 @@ const addTranslationRule = (sa: SematicAnalyzer) => {
   }
 };
 
-const source = readFileSync(join(__dirname, 'glsl/demo2.gs')).toString();
-
-const testCase: TestCase = {
-  createGrammar,
-  addTranslationRule,
-  source,
-};
-
-export default testCase;
+export { createGrammar, addTranslationRule };
