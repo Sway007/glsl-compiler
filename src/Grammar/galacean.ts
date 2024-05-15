@@ -151,7 +151,11 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptionsV2(
     ENonTerminal.gl_tag_id,
-    [[EKeyword.GL_ReplacementTag], [EKeyword.GL_LightMode]],
+    [
+      [EKeyword.GL_ReplacementTag],
+      [EKeyword.GL_LightMode],
+      [EKeyword.GL_PipelineStage],
+    ],
     ASTNode.GLTagId
   ),
 
@@ -553,14 +557,14 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.LEFT_BRACE,
         ENonTerminal.struct_declaration_list,
         ETokenType.RIGHT_BRACE,
-        ETokenType.SEMICOLON,
+        // ETokenType.SEMICOLON,
       ],
       [
         EKeyword.STRUCT,
         ETokenType.LEFT_BRACE,
         ENonTerminal.struct_declaration_list,
         ETokenType.RIGHT_BRACE,
-        ETokenType.SEMICOLON,
+        // ETokenType.SEMICOLON,
       ],
     ],
     ASTNode.StructSpecifier

@@ -8,6 +8,7 @@ import State from '../Grammar/State';
 import StateItem from '../Grammar/StateItem';
 import GrammarUtils from '../Grammar/Utils';
 import { EKeyword, ETokenType } from '../Lexer/TokenType';
+import Parser from '../Parser';
 import Utils from './Utils';
 import {
   ActionInfo,
@@ -36,6 +37,7 @@ export default class LALR1 {
   generate() {
     this.computeFirstSet();
     this.buildStateTable();
+    return new Parser(this.actionTable, this.gotoTable, this.grammar);
   }
 
   private buildStateTable() {

@@ -2,10 +2,9 @@ import Lexer from './Lexer';
 import Parser from './Parser';
 import Preprocessor from './Preprocessor';
 import { createGrammar, addTranslationRule } from './Grammar/galacean';
-import LRLoader from './Parser/Loader';
 import { GLES100Visitor, GLES300Visitor } from './CodeGen';
 
-import grammarData from './lalr1.bin';
+import LALR1 from './ParserGenerator/LALR1';
 
 export enum EBackend {
   GLES100,
@@ -17,7 +16,8 @@ export class ShaderLab {
 
   constructor() {
     const grammar = createGrammar();
-    this.parser = LRLoader.load(grammarData.buffer, grammar);
+    const generator = new LALR1(grammar);
+    this.parser = generator.generate();
     addTranslationRule(this.parser.sematicAnalyzer);
   }
 

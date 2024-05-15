@@ -5,17 +5,25 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha -r ts-node/register test/**/*.spec.ts",
-    "demo": "ts-node test/parser/lalr.ts"
+    "demo": "ts-node test/parser/lalr.ts",
+    "build": "ts-node esbuild.ts",
+    "build:rl": "rollup -c",
+    "build:main": "ts-node esbuild_main.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@swc/core": "^1.5.7",
     "@types/chai": "^4.3.14",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.30",
     "chai": "^5.1.0",
+    "esbuild": "0.21.2",
     "mocha": "^10.3.0",
+    "rollup": "^4.17.2",
+    "rollup-plugin-string": "^3.0.0",
+    "rollup-plugin-swc3": "^0.11.2",
     "ts-node": "^10.9.2"
   }
 }

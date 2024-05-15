@@ -283,9 +283,10 @@ export default class PpScanner extends PpError {
     );
   }
 
-  skipSpace() {
-    while ([' ', '\t', '\n'].indexOf(this.curChar()) != -1) {
-      this.advance();
+  skipSpace(includeLineBreak = true) {
+    const spaces = includeLineBreak ? [' ', '\t', '\n'] : [' ', '\t'];
+    while (spaces.indexOf(this.curChar()) != -1) {
+      this._advance();
     }
   }
 
@@ -321,14 +322,6 @@ export default class PpScanner extends PpError {
           return new PpToken(EPpToken.le, '<=', this.getPosition(2));
         }
         return new PpToken(EPpToken.left_angle, '<', this.getPosition());
-
-      case '+':
-        this.advance();
-        return new PpToken(EPpToken.plus, '+', this.getPosition());
-
-      case '-':
-        this.advance();
-        return new PpToken(EPpToken.dash, '-', this.getPosition());
 
       case '*':
         this.advance();
