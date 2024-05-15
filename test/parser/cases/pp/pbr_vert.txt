@@ -1,0 +1,419 @@
+#version 300 es
+#define SCENE_IS_DECODE_ENV_RGBM
+#define GRAPHICS_API_WEBGL2
+#define RENDERER_IS_RECEIVE_SHADOWS
+#define RENDERER_HAS_UV
+#define RENDERER_HAS_NORMAL
+#define SCENE_USE_SH
+#define SCENE_USE_SPECULAR_ENV
+
+#define SCENE_FOG_MODE 0
+#define SCENE_SHADOW_CASCADED_COUNT 1
+#define MATERIAL_NEED_WORLD_POS
+#define MATERIAL_NEED_TILING_OFFSET
+#define SCENE_DIRECT_LIGHT_COUNT 1
+
+#define GLSLIFY 1
+#define GLSLIFY 1
+#define PI 3.14159265359
+#define RECIPROCAL_PI 0.31830988618
+#define EPSILON 1e-6
+#define LOG2 1.442695
+#define saturate( a ) clamp( a, 0.0, 1.0 )
+float pow2(float x) {
+    return x*x;
+}
+vec4 RGBMToLinear(vec4 value, float maxRange) {
+    return vec4(value.rgb*value.a*maxRange, 1.0);
+}
+vec4 gammaToLinear(vec4 srgbIn) {
+    return vec4(pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
+}
+vec4 linearToGamma(vec4 linearIn) {
+    return vec4(pow(linearIn.rgb, vec3(1.0/2.2)), linearIn.a);
+}
+uniform vec4 camera_DepthBufferParams;
+float remapDepthBufferLinear01(float z) {
+    return 1.0/(camera_DepthBufferParams.x*z+camera_DepthBufferParams.y);
+}
+#ifdef GRAPHICS_API_WEBGL2
+    #define INVERSE_MAT(mat) inverse(mat)
+#else
+    mat2 inverseMat(mat2 m) {
+        return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0])/(m[0][0]*m[1][1]-m[0][1]*m[1][0]);
+    }
+    mat3 inverseMat(mat3 m) {
+        float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2];
+        float a10 = m[1][0], a11 = m[1][1], a12 = m[1][2];
+        float a20 = m[2][0], a21 = m[2][1], a22 = m[2][2];
+        float b01 = a22*a11-a12*a21;
+        float b11 = -a22*a10+a12*a20;
+        float b21 = a21*a10-a11*a20;
+        float det = a00*b01+a01*b11+a02*b21;
+        return mat3(b01, (-a22*a01+a02*a21), (a12*a01-a02*a11), b11, (a22*a00-a02*a20), (-a12*a00+a02*a10), b21, (-a21*a00+a01*a20), (a11*a00-a01*a10))/det;
+    }
+    mat4 inverseMat(mat4 m) {
+        float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2], a03 = m[0][3], a10 = m[1][0], a11 = m[1][1], a12 = m[1][2], a13 = m[1][3], a20 = m[2][0], a21 = m[2][1], a22 = m[2][2], a23 = m[2][3], a30 = m[3][0], a31 = m[3][1], a32 = m[3][2], a33 = m[3][3], b00 = a00*a11-a01*a10, b01 = a00*a12-a02*a10, b02 = a00*a13-a03*a10, b03 = a01*a12-a02*a11, b04 = a01*a13-a03*a11, b05 = a02*a13-a03*a12, b06 = a20*a31-a21*a30, b07 = a20*a32-a22*a30, b08 = a20*a33-a23*a30, b09 = a21*a32-a22*a31, b10 = a21*a33-a23*a31, b11 = a22*a33-a23*a32, det = b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06;
+        return mat4(a11*b11-a12*b10+a13*b09, a02*b10-a01*b11-a03*b09, a31*b05-a32*b04+a33*b03, a22*b04-a21*b05-a23*b03, a12*b08-a10*b11-a13*b07, a00*b11-a02*b08+a03*b07, a32*b02-a30*b05-a33*b01, a20*b05-a22*b02+a23*b01, a10*b10-a11*b08+a13*b06, a01*b08-a00*b10-a03*b06, a30*b04-a31*b02+a33*b00, a21*b02-a20*b04-a23*b00, a11*b07-a10*b09-a12*b06, a00*b09-a01*b07+a02*b06, a31*b01-a30*b03-a32*b00, a20*b03-a21*b01+a22*b00)/det;
+    }
+    #define INVERSE_MAT(mat) inverseMat(mat)
+#endif
+
+#define GLSLIFY 1
+in vec3 POSITION;
+#ifdef RENDERER_HAS_UV
+    in vec2 TEXCOORD_0;
+#endif
+#ifdef RENDERER_HAS_UV1
+    in vec2 TEXCOORD_1;
+#endif
+#ifdef RENDERER_HAS_SKIN
+    in vec4 JOINTS_0;
+    in vec4 WEIGHTS_0;
+    #ifdef RENDERER_USE_JOINT_TEXTURE
+        uniform sampler2D renderer_JointSampler;
+        uniform float renderer_JointCount;
+        mat4 getJointMatrix(sampler2D smp, float index) {
+            float base = index/renderer_JointCount;
+            float hf = 0.5/renderer_JointCount;
+            float v = base+hf;
+            vec4 m0 = texture(smp, vec2(0.125, v));
+            vec4 m1 = texture(smp, vec2(0.375, v));
+            vec4 m2 = texture(smp, vec2(0.625, v));
+            vec4 m3 = texture(smp, vec2(0.875, v));
+            return mat4(m0, m1, m2, m3);
+        }
+    #else
+        uniform mat4 renderer_JointMatrix[RENDERER_JOINTS_NUM];
+    #endif
+#endif
+#ifdef RENDERER_ENABLE_VERTEXCOLOR
+    in vec4 COLOR_0;
+#endif
+#define GLSLIFY 1
+uniform mat4 renderer_LocalMat;
+uniform mat4 renderer_ModelMat;
+uniform mat4 camera_ViewMat;
+uniform mat4 camera_ProjMat;
+uniform mat4 renderer_MVMat;
+uniform mat4 renderer_MVPMat;
+uniform mat4 renderer_NormalMat;
+#define GLSLIFY 1
+uniform vec3 camera_Position;
+uniform vec3 camera_Forward;
+uniform vec4 camera_ProjectionParams;
+uniform vec4 material_TilingOffset;
+#ifndef MATERIAL_OMIT_NORMAL
+    #ifdef RENDERER_HAS_NORMAL
+        in vec3 NORMAL;
+    #endif
+    #ifdef RENDERER_HAS_TANGENT
+        in vec4 TANGENT;
+    #endif
+#endif
+
+#define GLSLIFY 1
+#ifdef RENDERER_HAS_BLENDSHAPE
+    #ifdef RENDERER_BLENDSHAPE_USE_TEXTURE
+        uniform mediump sampler2DArray renderer_BlendShapeTexture;
+        uniform ivec3 renderer_BlendShapeTextureInfo;
+        uniform float renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
+    #else
+        in vec3 POSITION_BS0;
+        in vec3 POSITION_BS1;
+        #if defined( RENDERER_BLENDSHAPE_HAS_NORMAL ) && defined( RENDERER_BLENDSHAPE_HAS_TANGENT )
+            in vec3 NORMAL_BS0;
+            in vec3 NORMAL_BS1;
+            in vec3 TANGENT_BS0;
+            in vec3 TANGENT_BS1;
+            uniform float renderer_BlendShapeWeights[2];
+        #else
+            #if defined( RENDERER_BLENDSHAPE_HAS_NORMAL ) || defined( RENDERER_BLENDSHAPE_HAS_TANGENT )
+                in vec3 POSITION_BS2;
+                in vec3 POSITION_BS3;
+                #ifdef RENDERER_BLENDSHAPE_HAS_NORMAL
+                    in vec3 NORMAL_BS0;
+                    in vec3 NORMAL_BS1;
+                    in vec3 NORMAL_BS2;
+                    in vec3 NORMAL_BS3;
+                #endif
+                #ifdef RENDERER_BLENDSHAPE_HAS_TANGENT
+                    in vec3 TANGENT_BS0;
+                    in vec3 TANGENT_BS1;
+                    in vec3 TANGENT_BS2;
+                    in vec3 TANGENT_BS3;
+                #endif
+                uniform float renderer_BlendShapeWeights[4];
+            #else
+                in vec3 POSITION_BS2;
+                in vec3 POSITION_BS3;
+                in vec3 POSITION_BS4;
+                in vec3 POSITION_BS5;
+                in vec3 POSITION_BS6;
+                in vec3 POSITION_BS7;
+                uniform float renderer_BlendShapeWeights[8];
+            #endif
+        #endif
+    #endif
+    #ifdef RENDERER_BLENDSHAPE_USE_TEXTURE
+        vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex) {
+            int y = vertexElementIndex/renderer_BlendShapeTextureInfo.y;
+            int x = vertexElementIndex-y*renderer_BlendShapeTextureInfo.y;
+            ivec3 uv = ivec3(x, y, blendShapeIndex);
+            return texelFetch(renderer_BlendShapeTexture, uv, 0).xyz;
+        }
+    #endif
+#endif
+
+#define GLSLIFY 1
+out vec2 v_uv;
+#ifdef RENDERER_HAS_UV1
+    out vec2 v_uv1;
+#endif
+
+#define GLSLIFY 1
+#ifdef RENDERER_ENABLE_VERTEXCOLOR
+    out vec4 v_color;
+#endif
+
+#define GLSLIFY 1
+#ifndef MATERIAL_OMIT_NORMAL
+    #ifdef RENDERER_HAS_NORMAL
+        out vec3 v_normal;
+        #if defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY) )
+            out mat3 v_TBN;
+        #endif
+    #endif
+#endif
+
+#define GLSLIFY 1
+#ifdef MATERIAL_NEED_WORLD_POS
+    out vec3 v_pos;
+#endif
+
+#define GLSLIFY 1
+#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
+    #define SCENE_IS_CALCULATE_SHADOWS
+#endif
+#ifdef SCENE_IS_CALCULATE_SHADOWS
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
+        #define GLSLIFY 1
+        uniform mat4 scene_ShadowMatrices[SCENE_SHADOW_CASCADED_COUNT+1];
+        uniform vec4 scene_ShadowSplitSpheres[4];
+        mediump int computeCascadeIndex(vec3 positionWS) {
+            vec3 fromCenter0 = positionWS-scene_ShadowSplitSpheres[0].xyz;
+            vec3 fromCenter1 = positionWS-scene_ShadowSplitSpheres[1].xyz;
+            vec3 fromCenter2 = positionWS-scene_ShadowSplitSpheres[2].xyz;
+            vec3 fromCenter3 = positionWS-scene_ShadowSplitSpheres[3].xyz;
+            mediump vec4 comparison = vec4(dot(fromCenter0, fromCenter0)<scene_ShadowSplitSpheres[0].w, dot(fromCenter1, fromCenter1)<scene_ShadowSplitSpheres[1].w, dot(fromCenter2, fromCenter2)<scene_ShadowSplitSpheres[2].w, dot(fromCenter3, fromCenter3)<scene_ShadowSplitSpheres[3].w);
+            comparison.yzw = clamp(comparison.yzw-comparison.xyz, 0.0, 1.0);
+            mediump vec4 indexCoefficient = vec4(4.0, 3.0, 2.0, 1.0);
+            mediump int index = 4-int(dot(comparison, indexCoefficient));
+            return index;
+        }
+        vec3 getShadowCoord() {
+            #if SCENE_SHADOW_CASCADED_COUNT == 1
+                mediump int cascadeIndex = 0;
+            #else
+                mediump int cascadeIndex = computeCascadeIndex(v_pos);
+            #endif
+            #ifdef GRAPHICS_API_WEBGL2
+                mat4 shadowMatrix = scene_ShadowMatrices[cascadeIndex];
+            #else
+                mat4 shadowMatrix;
+                #if SCENE_SHADOW_CASCADED_COUNT == 4
+                    if(cascadeIndex == 0) {
+                        shadowMatrix = scene_ShadowMatrices[0];
+                    }
+                    else if(cascadeIndex == 1) {
+                        shadowMatrix = scene_ShadowMatrices[1];
+                    }
+                    else if(cascadeIndex == 2) {
+                        shadowMatrix = scene_ShadowMatrices[2];
+                    }
+                    else if(cascadeIndex == 3) {
+                        shadowMatrix = scene_ShadowMatrices[3];
+                    }
+                    else {
+                        shadowMatrix = scene_ShadowMatrices[4];
+                    }
+                #endif
+                #if SCENE_SHADOW_CASCADED_COUNT == 2
+                    if(cascadeIndex == 0) {
+                        shadowMatrix = scene_ShadowMatrices[0];
+                    }
+                    else if(cascadeIndex == 1) {
+                        shadowMatrix = scene_ShadowMatrices[1];
+                    }
+                    else {
+                        shadowMatrix = scene_ShadowMatrices[2];
+                    }
+                #endif
+                #if SCENE_SHADOW_CASCADED_COUNT == 1
+                    if(cascadeIndex == 0) {
+                        shadowMatrix = scene_ShadowMatrices[0];
+                    }
+                    else {
+                        shadowMatrix = scene_ShadowMatrices[1];
+                    }
+                #endif
+            #endif
+            vec4 shadowCoord = shadowMatrix*vec4(v_pos, 1.0);
+            return shadowCoord.xyz;
+        }
+        out vec3 v_shadowCoord;
+    #endif
+#endif
+
+#define GLSLIFY 1
+#if SCENE_FOG_MODE ! = 0
+    out vec3 v_positionVS;
+#endif
+
+void main() {
+    #define GLSLIFY 1
+    vec4 position = vec4(POSITION, 1.0);
+    #define GLSLIFY 1
+    #ifndef MATERIAL_OMIT_NORMAL
+        #ifdef RENDERER_HAS_NORMAL
+            vec3 normal = vec3(NORMAL);
+        #endif
+        #ifdef RENDERER_HAS_TANGENT
+            vec4 tangent = vec4(TANGENT);
+        #endif
+    #endif
+    
+    #define GLSLIFY 1
+    #ifdef RENDERER_HAS_BLENDSHAPE
+        #ifdef RENDERER_BLENDSHAPE_USE_TEXTURE
+            int vertexOffset = gl_VertexID*renderer_BlendShapeTextureInfo.x;
+            for(int i = 0;i<RENDERER_BLENDSHAPE_COUNT;i++) {
+                int vertexElementOffset = vertexOffset;
+                float weight = renderer_BlendShapeWeights[i];
+                if(weight! = 0.0) {
+                    position.xyz += getBlendShapeVertexElement(i, vertexElementOffset)*weight;
+                    #ifndef MATERIAL_OMIT_NORMAL
+                        #if defined( RENDERER_HAS_NORMAL ) && defined( RENDERER_BLENDSHAPE_HAS_NORMAL )
+                            vertexElementOffset += 1;
+                            normal += getBlendShapeVertexElement(i, vertexElementOffset)*weight;
+                        #endif
+                        #if defined( RENDERER_HAS_TANGENT ) && defined(RENDERER_BLENDSHAPE_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+                            vertexElementOffset += 1;
+                            tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset)*weight;
+                        #endif
+                    #endif
+                }
+        
+            }
+        #else
+            position.xyz += POSITION_BS0*renderer_BlendShapeWeights[0];
+            position.xyz += POSITION_BS1*renderer_BlendShapeWeights[1];
+            #if defined( RENDERER_BLENDSHAPE_HAS_NORMAL ) && defined( RENDERER_BLENDSHAPE_HAS_TANGENT )
+                #ifndef MATERIAL_OMIT_NORMAL
+                    #ifdef RENDERER_HAS_NORMAL
+                        normal += NORMAL_BS0*renderer_BlendShapeWeights[0];
+                        normal += NORMAL_BS1*renderer_BlendShapeWeights[1];
+                    #endif
+                    #if defined( RENDERER_HAS_TANGENT ) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+                        tangent.xyz += TANGENT_BS0*renderer_BlendShapeWeights[0];
+                        tangent.xyz += TANGENT_BS1*renderer_BlendShapeWeights[1];
+                    #endif
+                #endif
+            #else
+                #if defined( RENDERER_BLENDSHAPE_HAS_NORMAL ) || defined( RENDERER_BLENDSHAPE_HAS_TANGENT )
+                    #ifndef MATERIAL_OMIT_NORMAL
+                        position.xyz += POSITION_BS2*renderer_BlendShapeWeights[2];
+                        position.xyz += POSITION_BS3*renderer_BlendShapeWeights[3];
+                        #if defined( RENDERER_BLENDSHAPE_HAS_NORMAL ) && defined( RENDERER_HAS_NORMAL )
+                            normal += NORMAL_BS0*renderer_BlendShapeWeights[0];
+                            normal += NORMAL_BS1*renderer_BlendShapeWeights[1];
+                            normal += NORMAL_BS2*renderer_BlendShapeWeights[2];
+                            normal += NORMAL_BS3*renderer_BlendShapeWeights[3];
+                        #endif
+                        #if defined(RENDERER_BLENDSHAPE_HAS_TANGENT) && defined( RENDERER_HAS_TANGENT ) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+                            tangent.xyz += TANGENT_BS0*renderer_BlendShapeWeights[0];
+                            tangent.xyz += TANGENT_BS1*renderer_BlendShapeWeights[1];
+                            tangent.xyz += TANGENT_BS2*renderer_BlendShapeWeights[2];
+                            tangent.xyz += TANGENT_BS3*renderer_BlendShapeWeights[3];
+                        #endif
+                    #endif
+                #else
+                    position.xyz += POSITION_BS2*renderer_BlendShapeWeights[2];
+                    position.xyz += POSITION_BS3*renderer_BlendShapeWeights[3];
+                    position.xyz += POSITION_BS4*renderer_BlendShapeWeights[4];
+                    position.xyz += POSITION_BS5*renderer_BlendShapeWeights[5];
+                    position.xyz += POSITION_BS6*renderer_BlendShapeWeights[6];
+                    position.xyz += POSITION_BS7*renderer_BlendShapeWeights[7];
+                #endif
+            #endif
+        #endif
+    #endif
+    
+    #define GLSLIFY 1
+    #ifdef RENDERER_HAS_SKIN
+        #ifdef RENDERER_USE_JOINT_TEXTURE
+            mat4 skinMatrix = WEIGHTS_0.x*getJointMatrix(renderer_JointSampler, JOINTS_0.x)+WEIGHTS_0.y*getJointMatrix(renderer_JointSampler, JOINTS_0.y)+WEIGHTS_0.z*getJointMatrix(renderer_JointSampler, JOINTS_0.z)+WEIGHTS_0.w*getJointMatrix(renderer_JointSampler, JOINTS_0.w);
+        #else
+            mat4 skinMatrix = WEIGHTS_0.x*renderer_JointMatrix[int(JOINTS_0.x)]+WEIGHTS_0.y*renderer_JointMatrix[int(JOINTS_0.y)]+WEIGHTS_0.z*renderer_JointMatrix[int(JOINTS_0.z)]+WEIGHTS_0.w*renderer_JointMatrix[int(JOINTS_0.w)];
+        #endif
+        position = skinMatrix*position;
+        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            normal = normal*skinNormalMatrix;
+            #if defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+                tangent.xyz = tangent.xyz*skinNormalMatrix;
+            #endif
+        #endif
+    #endif
+    
+    #define GLSLIFY 1
+    #ifdef RENDERER_HAS_UV
+        v_uv = TEXCOORD_0;
+    #else
+        v_uv = vec2(0., 0.);
+    #endif
+    #ifdef RENDERER_HAS_UV1
+        v_uv1 = TEXCOORD_1;
+    #endif
+    #ifdef MATERIAL_NEED_TILING_OFFSET
+        v_uv = v_uv*material_TilingOffset.xy+material_TilingOffset.zw;
+    #endif
+    
+    #define GLSLIFY 1
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        v_color = COLOR_0;
+    #endif
+    
+    #define GLSLIFY 1
+    #ifndef MATERIAL_OMIT_NORMAL
+        #ifdef RENDERER_HAS_NORMAL
+            v_normal = normalize(mat3(renderer_NormalMat)*normal);
+            #if defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY) )
+                vec3 tangentW = normalize(mat3(renderer_NormalMat)*tangent.xyz);
+                vec3 bitangentW = cross(v_normal, tangentW)*tangent.w;
+                v_TBN = mat3(tangentW, bitangentW, v_normal);
+            #endif
+        #endif
+    #endif
+    
+    #define GLSLIFY 1
+    #ifdef MATERIAL_NEED_WORLD_POS
+        vec4 temp_pos = renderer_ModelMat*position;
+        v_pos = temp_pos.xyz/temp_pos.w;
+    #endif
+    
+    #define GLSLIFY 1
+    gl_Position = renderer_MVPMat*position;
+    #define GLSLIFY 1
+    #ifdef SCENE_IS_CALCULATE_SHADOWS
+        #if SCENE_SHADOW_CASCADED_COUNT == 1
+            v_shadowCoord = getShadowCoord();
+        #endif
+    #endif
+    
+    #define GLSLIFY 1
+    #if SCENE_FOG_MODE ! = 0
+        vec4 positionVS = renderer_MVMat*position;
+        v_positionVS = positionVS.xyz/positionVS.w;
+    #endif
+}

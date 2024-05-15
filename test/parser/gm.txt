@@ -1,0 +1,61 @@
+S' -> A
+A -> F C a
+A -> E A
+B -> C G h
+C -> D B a
+C -> b h
+C -> c
+C ->  
+D -> F e
+D ->  
+E -> G h
+E -> D f
+F -> E A
+F -> d F
+F ->  
+G -> g
+
+// =========
+
+S -> E
+E -> T + E
+E -> n
+T -> n
+
+// ==========
+
+S` -> S
+S -> X X
+X -> a X
+X -> b
+
+// =========
+
+S' -> exp
+exp -> exp + term
+exp -> term
+term -> term * factor
+term -> factor
+factor -> INT
+factor -> ( exp )
+
+// ==========
+
+program -> statements
+statements -> statement
+statements -> statements statement
+statement -> decl
+statement -> assign
+statement -> block
+decl -> var id ;
+assign -> id = exp ;
+block -> { statements }
+exp -> term
+exp -> exp + term
+exp -> exp - term
+term -> factor
+term -> term * factor
+term -> term / factor
+factor -> id
+factor -> num
+factor -> ( exp )

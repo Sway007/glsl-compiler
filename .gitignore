@@ -1,0 +1,10 @@
+node_modules
+.vscode
+lalr1.bin
+.local
+.DS_Store
+.prettierignore
+dist
+test/parser/output
+*.output
+*.tab.c

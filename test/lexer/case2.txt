@@ -1,0 +1,59 @@
+Shader ParticleEffect {
+  SubShader Default {
+    Pass 0 {
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      define PI 3.14159265359
+      mat4 renderer_MVPMat;
+      float progress;
+
+      struct a2v {
+        vec3 POSITION;
+        vec3 INDEX;
+        vec2 UV;
+      }
+
+      struct v2f {
+        vec2 v_uv;
+      }
+
+      v2f vert(a2v v) {
+        v2f o;
+
+        o.v_uv = v.UV;
+        vec4 position = vec4(v.POSITION , 1.0);
+        float distance = length(v.INDEX.xy);
+        float maxDistance = 40.0 * 1.414;
+        float wait = distance / maxDistance * 0.5;
+
+        float p = clamp(progress-wait, 0.0, 2.0);
+        position.z += sin(p * PI * 6.0) * 3.0 * (maxDistance - distance * 0.5) / maxDistance * (2.0 - progress) * 0.5;
+
+        gl_Position = renderer_MVPMat * position;
+        return o;
+      }
+
+      float progress;
+      sampler2D texture1;
+      sampler2D texture2;
+
+      // This function could be changed. Some great effects could be referred to https://gl-transitions.com/gallery
+      vec4 transition(vec2 p, float progress) {
+        vec2 dir = p - vec2(0.5);
+        float dist = length(dir);
+
+        if (dist > progress) {
+          return mix(texture2D(texture1, v_uv), texture2D(texture2, v_uv), progress);
+        } else {
+          vec2 offset = dir * sin(dist * 30.0 - progress * 30.0);
+          return mix(texture2D(texture1, v_uv + offset), texture2D(texture2, v_uv), progress);
+        }
+      }
+
+      void frag(v2f i) {
+        gl_FragColor = transition(i.v_uv, clamp(progress, 0.0, 1.0));
+      }
+    }
+  }
+}
