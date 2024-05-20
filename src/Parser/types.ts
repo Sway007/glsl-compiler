@@ -43,6 +43,8 @@ export type ASTNodeConstructor = new (
   children: NodeChild[]
 ) => TreeNode;
 
+export const TypeAny = 1000;
+
 export type GalaceanDataType =
   | EKeyword.VOID
   | EKeyword.FLOAT
@@ -64,15 +66,12 @@ export type GalaceanDataType =
   | EKeyword.MAT2
   | EKeyword.MAT3
   | EKeyword.MAT4
-  | EKeyword.MAT2X2
   | EKeyword.MAT2X3
   | EKeyword.MAT2X4
   | EKeyword.MAT3X2
-  | EKeyword.MAT3X3
   | EKeyword.MAT3X4
   | EKeyword.MAT4X2
   | EKeyword.MAT4X3
-  | EKeyword.MAT4X4
   | EKeyword.SAMPLER2D
   | EKeyword.SAMPLER3D
   | EKeyword.SAMPLER_CUBE
@@ -93,6 +92,7 @@ export type GalaceanDataType =
   | EKeyword.GL_DepthState
   | EKeyword.GL_StencilState
   | EKeyword.GL_RasterState
+  | typeof TypeAny
   | string;
 
 export type RenderStateLabel =

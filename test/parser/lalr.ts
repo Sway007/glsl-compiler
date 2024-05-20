@@ -14,50 +14,47 @@ import { createGrammar, addTranslationRule } from '../../src/Grammar/galacean';
 import { GLES100Visitor, GLES300Visitor } from '../../src/CodeGen';
 import { join } from 'path';
 import Preprocessor from '../../src/Preprocessor';
-import { ShaderLab } from '../../src/main';
 
 const outputRoot = join(__dirname, 'output');
 
 async function main() {
-  // const grammar = createGrammar();
+  const grammar = createGrammar();
 
   const source = readFileSync(join(__dirname, 'cases/glsl/demo.gs')).toString();
-  const shaderLab = new ShaderLab();
 
-  // const parser = new LALR1(grammar);
-  // parser.generate();
+  const parser = new LALR1(grammar);
+  parser.generate();
 
   // await printFirstSet(parser.firstSetMap, '.local/firstSet.text');
   // await printStatePool('.local/state.txt');
   // if (testCase.printConfig) printStateTable(testCase.printConfig, parser);
-  // LREncoder.encode('lalr1.bin', parser);
+  LREncoder.encode('lalr1.bin', parser);
 
-  // console.log('decoding ....');
-  // const buffer = readFileSync('lalr1.bin');
-  // const arraybuffer = new ArrayBuffer(buffer.byteLength);
-  // const view = new DataView(arraybuffer);
-  // for (let i = 0; i < buffer.byteLength; i++) {
-  //   view.setUint8(i, buffer[i]);
-  // }
+  console.log('decoding ....');
+  const buffer = readFileSync('lalr1.bin');
+  const arraybuffer = new ArrayBuffer(buffer.byteLength);
+  const view = new DataView(arraybuffer);
+  for (let i = 0; i < buffer.byteLength; i++) {
+    view.setUint8(i, buffer[i]);
+  }
 
-  // const decodedParser = LRLoader.load(arraybuffer, grammar);
+  const decodedParser = LRLoader.load(arraybuffer, grammar);
   // const decodedParser = parser.generate();
   // if (testCase.printConfig)
   //   printStateTable(testCase.printConfig, decodedParser);
 
-  // const pp = new Preprocessor(source);
-  // const ppdText = pp.process();
-  // writeFileSync(join(outputRoot, 'expanded.txt'), ppdText);
-  // const lexer = new Lexer(ppdText);
-  // const tokens = lexer.tokenize();
-  // addTranslationRule(decodedParser.sematicAnalyzer);
+  const pp = new Preprocessor(source);
+  const ppdText = pp.process();
+  writeFileSync(join(outputRoot, 'expanded.txt'), ppdText);
+  const lexer = new Lexer(ppdText);
+  const tokens = lexer.tokenize();
+  addTranslationRule(decodedParser.sematicAnalyzer);
 
   // decodedParser.parse(tokens, true);
   const start = performance.now();
-  // const ret = decodedParser.parse(tokens);
-  // const codeGen = new GLES300Visitor();
-  // const result = codeGen.visitShaderProgram(ret);
-  const result = shaderLab.parse(source);
+  const ret = decodedParser.parse(tokens);
+  const codeGen = new GLES300Visitor();
+  const result = codeGen.visitShaderProgram(ret);
   console.log('time cost:', (performance.now() - start).toFixed(2), 'ms');
   writeOutput(result);
 

@@ -1802,7 +1802,8 @@ vec4 evaluateSurface(Temp_Varyings v, SurfaceData surfaceData){
           Temp_Attributes temp_attributes;
           Temp_Varyings temp_varyings;
           
-          
+          vec3 a = attr.POSITION;
+          v.v_uv = vec2(1., 2.);
 
           // @todo: use initVertex(attr, v);
           initVertex();

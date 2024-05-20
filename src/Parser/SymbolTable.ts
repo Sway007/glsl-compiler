@@ -1,8 +1,7 @@
-import Token from '../Lexer/Token';
 import { Logger } from '../Logger';
 import { ASTNode, TreeNode } from './AST';
 import SematicAnalyzer from './SemanticAnalyzer';
-import { SymbolType } from './types';
+import { GalaceanDataType, SymbolType } from './types';
 
 export enum ESymbolType {
   VAR,
@@ -10,22 +9,23 @@ export enum ESymbolType {
   STRUCT,
 }
 
+type SymbolAstNode =
+  | ASTNode.Initializer
+  | ASTNode.GLRenderStateDeclaration
+  | ASTNode.StructSpecifier
+  | ASTNode.FunctionDefinition;
+
 export abstract class SymbolInfo {
   readonly symType: ESymbolType;
   /** variable type */
   readonly symDataType?: SymbolType;
-  readonly astNode?:
-    | ASTNode.Initializer
-    | ASTNode.GLRenderStateDeclaration
-    | ASTNode.StructSpecifier
-    | ASTNode.FunctionDefinition
-    | undefined;
+  readonly astNode?: SymbolAstNode | undefined;
   readonly lexeme: string;
 
   constructor(
     lexeme: string,
     type: ESymbolType,
-    astNode?: TreeNode,
+    astNode?: SymbolAstNode,
     dataType?: SymbolType
   ) {
     this.lexeme = lexeme;
@@ -118,7 +118,7 @@ export default class SymbolTable {
   lookup<T extends ESymbolType>(
     lexeme: string,
     type: T,
-    signature?: T extends ESymbolType.FN ? string : never
+    signature?: T extends ESymbolType.FN ? GalaceanDataType[] : never
   ): SymbolTypeInfer<T> | null {
     const entry = this.table.get(lexeme);
     if (entry?.length) {
@@ -126,12 +126,19 @@ export default class SymbolTable {
       if (type !== ESymbolType.FN || signature == undefined) {
         found = entry.find((item) => item.symType === type);
       } else {
-        found = entry.find(
-          (item) =>
-            item.symType === ESymbolType.FN &&
-            (<ASTNode.FunctionDefinition>item.astNode!).protoType.paramSig ===
-              signature
-        );
+        found = entry.find((item) => {
+          const itemParams = (<ASTNode.FunctionDefinition>item.astNode)
+            ?.protoType.paramSig;
+          if (
+            item.symType !== ESymbolType.FN ||
+            signature?.length !== itemParams?.length
+          )
+            return false;
+          for (let i = 0; i < signature?.length ?? 0; i++) {
+            if (signature[i] !== itemParams![i]) return false;
+          }
+          return true;
+        });
       }
       if (found) {
         return found as any;

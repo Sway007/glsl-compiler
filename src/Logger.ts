@@ -1,5 +1,5 @@
 export class Logger {
-  static enabled = false;
+  static enabled = true;
   private enabled = true;
 
   readonly name: string;

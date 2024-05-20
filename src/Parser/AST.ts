@@ -1,3 +1,4 @@
+import { BuiltinFunction, NonGenericGalaceanType } from '../Builtin';
 import { CodeGenVisitor } from '../CodeGen';
 import { ENonTerminal } from '../Grammar/GrammarSymbol';
 import Token from '../Lexer/Token';
@@ -23,6 +24,7 @@ import {
   RenderStateLabel,
   StructProp,
   SymbolType,
+  TypeAny,
 } from './types';
 
 export class TreeNode {
@@ -163,7 +165,13 @@ export namespace ASTNode {
   }
 
   export abstract class ExpressionAstNode extends TreeNode {
-    type?: GalaceanDataType;
+    protected _type?: GalaceanDataType;
+    set type(t: GalaceanDataType | undefined) {
+      this._type = t;
+    }
+    get type() {
+      return this._type ?? TypeAny;
+    }
 
     constructor(nt: ENonTerminal, loc: LocRange, children: NodeChild[]) {
       super(nt, loc, children);
@@ -642,14 +650,14 @@ export namespace ASTNode {
       ];
     }
 
-    get paramSig(): string {
+    get paramSig(): GalaceanDataType[] {
       if (this.children.length === 1) {
         const decl = this.children[0] as ParameterDeclaration;
-        return `${decl.typeInfo.type}`;
+        return [decl.typeInfo.type];
       } else {
         const list = this.children[0] as FunctionParameterList;
         const decl = this.children[2] as ParameterDeclaration;
-        return `${list.paramSig};${decl.typeInfo.type}`;
+        return list.paramSig.concat([decl.typeInfo.type]);
       }
     }
 
@@ -809,18 +817,25 @@ export namespace ASTNode {
       if (functionIdentifier.isBuiltin) {
         this.type = functionIdentifier.ident;
       } else {
-        let paramSig: string | undefined;
+        const fnIdent = <string>functionIdentifier.ident;
+
+        let paramSig: NonGenericGalaceanType[] | undefined;
         if (this.children.length === 4) {
           const paramList = this.children[2];
           if (paramList instanceof FunctionCallParameterList) {
-            paramSig = paramList.paramSig;
+            paramSig = paramList.paramSig as any;
           }
         }
-        const fnSymbol = sa.scope.lookup(
-          <string>functionIdentifier.ident,
-          ESymbolType.FN,
-          paramSig
-        );
+        const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
+        if (builtinFn) {
+          this.type = BuiltinFunction.getReturnType(
+            builtinFn.fun,
+            builtinFn.genType
+          );
+          return;
+        }
+
+        const fnSymbol = sa.scope.lookup(fnIdent, ESymbolType.FN, paramSig);
         if (!fnSymbol) {
           sa.error(
             this.location,
@@ -836,27 +851,27 @@ export namespace ASTNode {
   }
 
   export class FunctionCallParameterList extends TreeNode {
-    paramSig?: string;
+    get paramSig(): GalaceanDataType[] | undefined {
+      if (this.children.length === 1) {
+        const expr = this.children[0] as AssignmentExpression;
+        if (expr.type == undefined) return [TypeAny];
+        return [expr.type];
+      } else {
+        const list = this.children[0] as FunctionCallParameterList;
+        const decl = this.children[2] as AssignmentExpression;
+        if (list.paramSig == undefined || decl.type == undefined) {
+          return [TypeAny];
+        } else {
+          return list.paramSig.concat([decl.type]);
+        }
+      }
+    }
 
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_parameter_list, loc, children);
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (this.children.length === 1) {
-        const expr = this.children[0] as AssignmentExpression;
-        if (expr.type == undefined) this.paramSig = undefined;
-        else this.paramSig = `${expr.type}`;
-      } else {
-        const list = this.children[0] as FunctionCallParameterList;
-        const decl = this.children[1] as AssignmentExpression;
-        if (list.paramSig == undefined || decl.type == undefined) {
-          this.paramSig = undefined;
-        } else {
-          this.paramSig = `${list.paramSig};${decl.type}`;
-        }
-      }
-    }
+    override semanticAnalyze(sa: SematicAnalyzer): void {}
   }
 
   export class PrecisionSpecifier extends TreeNode {
@@ -899,10 +914,10 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
-        this.type = expr.type;
+        this.type = expr.type ?? TypeAny;
       } else {
         const expr = this.children[2] as AssignmentExpression;
-        this.type = expr.type;
+        this.type = expr.type ?? TypeAny;
       }
     }
   }
@@ -938,12 +953,14 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         const id = this.children[0];
         if (id instanceof VariableIdentifier) {
-          this.type = id.typeInfo?.type;
+          this.type = id.typeInfo?.type ?? TypeAny;
         } else {
           switch ((<Token>id).type) {
             case ETokenType.INT_CONSTANT:
+              this._type = EKeyword.INT;
+              break;
             case ETokenType.FLOAT_CONSTANT:
-              this.type = (<Token>id).type as GalaceanDataType;
+              this.type = EKeyword.FLOAT;
               break;
             case EKeyword.TRUE:
             case EKeyword.FALSE:
@@ -1166,7 +1183,7 @@ export namespace ASTNode {
 
     get propList(): StructProp[] {
       const declList = (
-        this.children.length === 6 ? this.children[3] : this.children[2]
+        this.children.length === 5 ? this.children[3] : this.children[2]
       ) as StructDeclarationList;
       return declList.propList;
     }
@@ -1176,7 +1193,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (this.children.length === 6) {
+      if (this.children.length === 5) {
         this.ident = this.children[1] as Token;
         sa.scope.insert(new StructSymbol(this.ident.lexeme, this));
       }
@@ -1483,6 +1500,8 @@ export namespace ASTNode {
   }
 
   export class GLRenderStateDeclaration extends TreeNode {
+    type = TypeAny;
+
     get propListValue() {
       const list = this.children[3] as GLRenderStatePropList;
       return list.propList;
